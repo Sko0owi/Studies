@@ -1,0 +1,15 @@
+if true then 4 else 5 ;; (* git *)
+(* if false then 1 else 3.5 ;;  int vs float *)
+(* 4.75 + 2.34 ;; + dodaje inty +. dodaje floaty *)
+false || "ab">"cd" ;; (* git *)
+if true then () ;; (* odziwo git *)
+(* if false then () else 4 ;;  unit vs int *)
+(* let x = 2 in x^"aa" ;; x to int a powinien być string *)
+let y = "abc" in y^y ;; (* git *)
+(fun x -> x.[1]) "abcdef" ;; (* git *)
+(fun x -> x) true ;; (* git *)
+let x = [1;2] in x@x ;; (* git *)
+let rec f f = f+f in f 42 ;; (* eee git *)
+[1,true] ;; (* ewaluuje do listy par *)
+
+let _ = print_endline "Hello world!"

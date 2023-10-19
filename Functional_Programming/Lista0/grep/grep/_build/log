@@ -1,0 +1,5 @@
+# dune exec grep -- test
+# OCAMLPARAM: unset
+# Shared cache: disabled
+# Workspace root: /home/skowi/Desktop/fun/Lista0/grep/grep
+# Auto-detected concurrency: 12

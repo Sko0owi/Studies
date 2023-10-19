@@ -1,0 +1,5 @@
+{'E': 196, 'A': 140, 'T': 139, 'I': 123, 'O': 122, 'R': 113, 'D': 106, 'H': 89, 'W': 87, 'L': 74, 'S': 62, 'N': 58, 'C': 58, 'F': 39, 'U': 37, 'G': 37, 'Y': 36, 'M': 30, 'P': 30, 'B': 21, 'V': 14, 'K': 8, 'Z': 3, 'Q': 2, 'J': 2, 'X': 1}
+{'Z': 'E', 'K': 'A', 'X': 'T', 'F': 'I', 'V': 'O', 'Y': 'R', 'L': 'D', 'D': 'H', 'S': 'W', 'M': 'L', 'P': 'S', 'I': 'N', 'O': 'C', 'B': 'F', 'Q': 'U', 'R': 'G', 'C': 'Y', 'A': 'M', 'N': 'P'}
+ALI TDE LAHE OCTDE STARNSFAGGEI WORHWOOI ALI TDE TDNRIMART OCTDE WATERS UEFA HE WORHWOOI ALI HALYHELINEI OCTDE WATERSUEFA PSETDEYWEREHAIEUNTTER
+[('Z', 20), ('K', 13), ('X', 13), ('F', 10), ('V', 9), ('Y', 9), ('L', 7), ('D', 7), ('S', 7), ('M', 6), ('P', 5), ('I', 4), ('O', 3), ('B', 3), ('Q', 3), ('R', 2), ('C', 2), ('A', 1), ('N', 1)]
+KMFXLZMKDZVOXLZPXKYIPBKRRZFSVYDSVVFKMFXLZXLIYFAKYXVOXLZSKXZYPQZBKDZSVYDSVVFKMFDKMCDZMFIZFVOXLZSKXZYPQZBKNPZXLZCSZYZDKFZQIXXZY

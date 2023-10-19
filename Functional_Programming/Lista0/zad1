@@ -1,0 +1,5 @@
+opam install "nazwa"
+
+opam find --search "key"
+
+opam show "nazwa"
