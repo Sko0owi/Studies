@@ -1,0 +1,11 @@
+{
+    "files.associations": {
+        "ranges": "cpp",
+        "iostream": "cpp",
+        "chrono": "cpp",
+        "span": "cpp",
+        "deque": "cpp",
+        "string": "cpp",
+        "vector": "cpp"
+    }
+}
