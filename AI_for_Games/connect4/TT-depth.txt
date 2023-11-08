@@ -1,0 +1,184 @@
+0 128
+4 Depth Nodes Visited: 0 0
+Depth Nodes Visited: 1 41
+Depth Nodes Visited: 2 281
+Depth Nodes Visited: 3 1087
+Depth Nodes Visited: 4 4065
+Depth Nodes Visited: 5 14769
+Depth Nodes Visited: 6 43127
+Depth Nodes Visited: 7 158167
+Sum: 221537
+STATY: 16411 236126 0 0
+980 7 2
+16 160
+4 Depth Nodes Visited: 0 0
+Depth Nodes Visited: 1 37
+Depth Nodes Visited: 2 244
+Depth Nodes Visited: 3 802
+Depth Nodes Visited: 4 2726
+Depth Nodes Visited: 5 8466
+Depth Nodes Visited: 6 22288
+Depth Nodes Visited: 7 79319
+Sum: 113882
+STATY: 2978 22613 0 0
+95 7 2
+8208 65696
+1 Depth Nodes Visited: 0 0
+Depth Nodes Visited: 1 37
+Depth Nodes Visited: 2 244
+Depth Nodes Visited: 3 784
+Depth Nodes Visited: 4 2823
+Depth Nodes Visited: 5 8635
+Depth Nodes Visited: 6 20551
+Depth Nodes Visited: 7 61920
+Sum: 94994
+STATY: 3131 20263 0 0
+95 7 3
+33562640 82080
+4 Depth Nodes Visited: 0 0
+Depth Nodes Visited: 1 37
+Depth Nodes Visited: 2 244
+Depth Nodes Visited: 3 766
+Depth Nodes Visited: 4 2655
+Depth Nodes Visited: 5 7304
+Depth Nodes Visited: 6 18110
+Depth Nodes Visited: 7 50019
+Sum: 79135
+STATY: 3572 22993 0 0
+95 7 11
+37756944 2147565728
+3 Depth Nodes Visited: 0 0
+Depth Nodes Visited: 1 37
+Depth Nodes Visited: 2 246
+Depth Nodes Visited: 3 635
+Depth Nodes Visited: 4 2216
+Depth Nodes Visited: 5 5088
+Depth Nodes Visited: 6 12867
+Depth Nodes Visited: 7 30883
+Sum: 51972
+STATY: 4044 23411 0 0
+95 7 0
+46145552 2147565732
+0 Depth Nodes Visited: 0 0
+Depth Nodes Visited: 1 37
+Depth Nodes Visited: 2 246
+Depth Nodes Visited: 3 612
+Depth Nodes Visited: 4 2301
+Depth Nodes Visited: 5 6407
+Depth Nodes Visited: 6 14979
+Depth Nodes Visited: 7 47273
+Sum: 71855
+STATY: 3922 19140 0 0
+95 7 16
+46145808 1101659193508
+0 Depth Nodes Visited: 0 0
+Depth Nodes Visited: 1 37
+Depth Nodes Visited: 2 244
+Depth Nodes Visited: 3 779
+Depth Nodes Visited: 4 2749
+Depth Nodes Visited: 5 9143
+Depth Nodes Visited: 6 22736
+Depth Nodes Visited: 7 73934
+Sum: 109622
+STATY: 4634 21077 0 0
+95 7 19
+46276880 564051612614820
+4 Depth Nodes Visited: 0 0
+Depth Nodes Visited: 1 37
+Depth Nodes Visited: 2 241
+Depth Nodes Visited: 3 752
+Depth Nodes Visited: 4 2829
+Depth Nodes Visited: 5 9040
+Depth Nodes Visited: 6 18997
+Depth Nodes Visited: 7 67073
+Sum: 98969
+STATY: 5405 22071 13 0
+95 7 20
+288230376197988624 564051612616868
+1 Depth Nodes Visited: 0 0
+Depth Nodes Visited: 1 34
+Depth Nodes Visited: 2 201
+Depth Nodes Visited: 3 571
+Depth Nodes Visited: 4 1904
+Depth Nodes Visited: 5 6678
+Depth Nodes Visited: 6 13564
+Depth Nodes Visited: 7 54150
+Sum: 77102
+STATY: 6620 21238 22 0
+95 7 29
+288230393377857808 564051612616870
+1 Depth Nodes Visited: 0 0
+Depth Nodes Visited: 1 34
+Depth Nodes Visited: 2 202
+Depth Nodes Visited: 3 705
+Depth Nodes Visited: 4 2264
+Depth Nodes Visited: 5 7830
+Depth Nodes Visited: 6 17966
+Depth Nodes Visited: 7 68986
+Sum: 97987
+STATY: 7973 21866 18 0
+95 7 30
+288239189470880016 564055907584166
+1 Sum: 0
+STATY: 0 1 0 0
+0 -1 80085
+292742789098250512 2306407065121278118
+0 Sum: 0
+STATY: 0 0 0 0
+0 -1 80085
+292742789165359376 2306407065121278182
+0 Sum: 0
+STATY: 0 0 0 0
+0 -1 80085
+292742823525097744 2306407065121278182
+0 Sum: 0
+STATY: 0 0 0 0
+0 -1 80085
+292760415711142160 2306407065122326758
+0 Sum: 0
+STATY: 0 0 0 0
+0 -1 80085
+301767614965883152 2306407065122326758
+0 Sum: 0
+STATY: 0 0 0 0
+0 -1 80085
+4913453633393271056 2306407065122327782
+2 Sum: 0
+STATY: 0 0 0 0
+0 -1 80085
+4913453633393303824 2306407065659198694
+2 Sum: 0
+STATY: 0 0 0 0
+0 -1 80085
+4913453633410081040 2306407065659198695
+2 Sum: 0
+STATY: 0 0 0 0
+0 -1 80085
+4913453642000015632 2306407065659198695
+2 Sum: 0
+STATY: 0 0 0 0
+0 -1 80085
+4913458040046526736 2306407065659198695
+2 Sum: 0
+STATY: 0 0 0 0
+0 -1 80085
+4915709839860211984 2306407065659198695
+2 Sum: 0
+STATY: 0 0 0 0
+0 -1 80085
+6068631344467058960 2306407065659198695
+3 Sum: 0
+STATY: 0 0 0 0
+0 -1 80085
+6068633543490314512 2306407065659198695
+3 Sum: 0
+STATY: 0 0 0 0
+0 -1 80085
+6069759443397157136 2306407065659199207
+3 Sum: 0
+STATY: 0 0 0 0
+0 -1 80085
+6646220195700580624 2306407065659461351
+5 Sum: 0
+STATY: 0 0 0 0
+0 -1 80085
