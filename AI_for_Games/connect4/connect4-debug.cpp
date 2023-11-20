@@ -15,7 +15,7 @@
 using namespace std;
 
 
-constexpr int KH = 1;
+constexpr int KH = 0;
 constexpr int MAX = 1;
 constexpr int MIN = -1;
 constexpr int DEBUG = 2;
@@ -39,8 +39,8 @@ int turn_index;
 
 
 timeval start_time, end_time;
-int possibleMoves[500][10];
-int killers[500][10];
+int possibleMoves[500][100];
+int killers[500][100];
 
 
 ull masks[8] = {
@@ -298,18 +298,33 @@ struct gameState
             if (x > 0) prev_won = 1;
         }
 
+        if(prev_won)
+        {
+            // cout << "EZ ";
+            // if(color == player_color) cout << "ENEMY\n";
+            // else cout << "JA\n";depth
+            // print();
+            // cout << mySpace << " " << enemySpace << "\n";
+        }
+
         if (color == player_color) prev_won *= -1;
         return prev_won;
     }
 };
 
+int move_chosen = 0;
+
 template <int player> 
 int alfa_beta(gameState state, int depth, int alfa, int beta)
 {
-
     if constexpr (DEBUG) nodes_visited ++;
     int checkForWin = state.checkWin();
-    if (checkForWin != 0) return checkForWin * end_cost;
+    if (checkForWin != 0)
+    {
+        cout << "Max_depth " << max_depth << " Depth: " << depth << " checkForWin" << checkForWin << "\n";
+        state.print();
+        return checkForWin * end_cost;
+    } 
     
 
     gettimeofday(&end_time,NULL);
@@ -320,6 +335,11 @@ int alfa_beta(gameState state, int depth, int alfa, int beta)
     if(depth >= max_depth) return state.evalState();
     
     int n = state.genPossibleMoves(depth);
+    
+    if(n == 0)
+    {
+        return 0;
+    }
 
     if constexpr (KH)
     {
@@ -371,10 +391,19 @@ int alfa_beta(gameState state, int depth, int alfa, int beta)
 
     if constexpr (player == MAX)
     {
+        vector<pair<int,gameState>> debug;
+        int id = 0;
+        bool debugBeta = 0;
         for(int i = 0; i < n; i++)
         {
             gameState newState = state.doMove(possibleMoves[depth][i]);
             int eval = alfa_beta<MIN>(newState, depth+1, alfa, beta);
+
+            // if (eval == end_cost || eval == -end_cost) return eval;
+            debug.push_back({eval, newState});
+
+            // cout << "Move " << move_chosen << " Max_depth " << max_depth << " Depth: " << depth << " MOVE: " << possibleMoves[depth][i] << " " << eval << "\n";
+            // newState.print();
 
             if (eval == INT_MIN) return INT_MIN;
 
@@ -385,18 +414,39 @@ int alfa_beta(gameState state, int depth, int alfa, int beta)
                     killers[depth][1] = killers[depth][0];
                     killers[depth][0] = possibleMoves[depth][i];
                 }
-                return beta;
+                debugBeta = 1;
+                // return beta;
             }
             alfa = max(alfa,eval);
             
         }
+
+        for(auto it : debug)
+        {
+            int eval = it.first;
+            gameState newState = it.second;
+            cout << "MAX Move " << move_chosen << " Max_depth " << max_depth << " Depth: " << depth << " MOVE: " << possibleMoves[depth][id++] << " " << eval << "\n";
+            cout << newState.mySpace << " " << newState.enemySpace << "\n";
+            newState.print();
+        }
+
+        if(debugBeta) return beta;
         return alfa;
+
+        return beta;
     } else // player MIN
     {
+        vector<pair<int,gameState>> debug;
+        int id = 0;
+        bool debugAlfa = 0;
         for(int i = 0; i < n; i++)
         {
             gameState newState = state.doMove(possibleMoves[depth][i]);
             int eval = alfa_beta<MAX>(newState, depth+1, alfa, beta);
+
+            debug.push_back({eval, newState});
+
+            // if (eval == end_cost || eval == -end_cost) return eval;
 
             if (eval == INT_MIN) return INT_MIN;
 
@@ -407,11 +457,25 @@ int alfa_beta(gameState state, int depth, int alfa, int beta)
                     killers[depth][1] = killers[depth][0];
                     killers[depth][0] = possibleMoves[depth][i];
                 }
-                return alfa;
+                debugAlfa = 1;
+                // return alfa;
             }
             beta = min(beta,eval);
         }
+
+        for(auto it : debug)
+        {
+            int eval = it.first;
+            gameState newState = it.second;
+            cout << "MIN Move " << move_chosen << " Max_depth " << max_depth << " Depth: " << depth << " MOVE: " << possibleMoves[depth][id++] << " " << eval << "\n";
+            cout << newState.mySpace << " " << newState.enemySpace << "\n";
+            newState.print();
+        }
+
+        if(debugAlfa) return alfa;
+        
         return beta;
+
     }
         
 }
@@ -423,7 +487,7 @@ int minmaxDecision(gameState toEval)
     max_depth = depth_to_start;
     bool stillTime = 1;
 
-    while(stillTime && max_depth <= 64)
+    while(stillTime && max_depth <= 63)
     {
         int n = toEval.genPossibleMoves(0);
         if(turn_index == 1) possibleMoves[0][n++] = -2;
@@ -435,17 +499,6 @@ int minmaxDecision(gameState toEval)
         {
 
             gameState newState = toEval.doMove(possibleMoves[0][i]);
-            if constexpr (DEBUG == 2)
-            {
-                if(max_depth == 7 || max_depth == 3)
-                {
-                    cout << "depth: " << max_depth << " ";
-                    cout << "game After move " << possibleMoves[0][i] << "\n";
-                    newState.print();
-                    int val = newState.evalState(true);
-                    cout << "eval planszy: " << val << "\n"; 
-                }
-            }
             
             int checkForWin = newState.checkWin();
             if (checkForWin != 0)
@@ -456,13 +509,28 @@ int minmaxDecision(gameState toEval)
 
             int move = possibleMoves[0][i];
 
+            move_chosen = move;
+
             int minmaxEval = alfa_beta<MIN>(newState, 1, INT_MIN, INT_MAX);
 
             if constexpr (DEBUG == 2)
             {
-                if(max_depth == 7)
+                if(i != -1)
                 {
-                    cout << "minmax val: " << minmaxEval << " " << maks << "\n";
+                    cout << "depth: " << max_depth << " ";
+                    cout << "game After move " << possibleMoves[0][i] << "\n";
+                    cout << newState.mySpace << " " << newState.enemySpace << "\n";
+                    newState.print();
+                    int val = newState.evalState(true);
+                    cout << "eval planszy: " << val << "\n"; 
+                }
+            }
+
+            if constexpr (DEBUG == 2)
+            {
+                if(i != -1)
+                {
+                    cout << "minmax val: " << minmaxEval << " " << maks << "\n\n\n";
                 }
             }
 
@@ -499,9 +567,19 @@ int main()
 
     gettimeofday(&start_time,NULL);
 
-    player_color = 1;
-    game.mySpace = 4833945626;
-    game.enemySpace = 1083199588;
+    player_color = 0;
+    game.mySpace = 2486866679208948599;
+    game.enemySpace = 888418195334907016;
+
+
+
+
+    // player_color = 0;
+    // game.mySpace = 2486866679276057463;
+    // game.enemySpace = 888418195334909064;
+
+    // cout << "WTF " << game.checkWin();
+    // return 0;
 
     if constexpr (DEBUG)
     {

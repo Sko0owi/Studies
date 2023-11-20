@@ -5,7 +5,7 @@
 
 
 
-#include <bits/stdc++.h>
+#include<bits/stdc++.h>
 #include <sys/time.h>
 
 #define INLINE inline __attribute__((always_inline))
@@ -15,16 +15,17 @@
 using namespace std;
 
 
-constexpr int KH = 1;
+constexpr int KH = 9;
 constexpr int MAX = 1;
 constexpr int MIN = -1;
-constexpr int DEBUG = 0;
-constexpr int PDF = 1;
+constexpr int DEBUG = 2;
 
 int max_depth;
 int best_eval;
 
-int depth_to_start = 1;
+int nodes_visited = 0;
+
+int depth_to_start = 3;
 
 int end_cost = 1000000;
 
@@ -37,11 +38,9 @@ int turn_index;
 
 
 
-
 timeval start_time, end_time;
-int nodes_visited[500];
-int possibleMoves[500][10];
-int killers[500][10];
+int possibleMoves[500][100];
+int killers[500][100];
 
 
 ull masks[8] = {
@@ -64,18 +63,6 @@ static short shiftValL[8] = {
     1,8,9,10,0,0,0
 };
 
-
-
-INLINE ull splittable64(ull x)
-{
-    x ^= x >> 30;
-    x *= UINT64_C(0xbf58476d1ce4e5b9);
-    x ^= x >> 27;
-    x *= UINT64_C(0x94d049bb133111eb);
-    x ^= x >> 31;
-    return x;
-}
-
 INLINE ull Shift(ull toShift, int dir)
 {
     return ((toShift >> shiftValR[dir]) << shiftValL[dir]) & masks[dir];
@@ -89,7 +76,6 @@ INLINE int Get(int pos, ull toGet)
 {
     return (toGet & ((ull)1 << pos)) >> pos;
 }
-
 
 struct gameState
 {
@@ -112,11 +98,10 @@ struct gameState
         color = 0;
     }
 
-
     bool goodMove(int move)
     {
         ull freeSpace = ~(enemySpace | mySpace);
-        if(move >= 0 && !Get(62 - move,freeSpace)) return true;
+        if(!Get(62 - move,freeSpace)) return true;
         return false; 
     }
         
@@ -142,16 +127,6 @@ struct gameState
         cout << "\n";
     }
 
-    ull hash()
-    {
-        
-        uint64_t lower_hash = splittable64(mySpace);
-        uint64_t upper_hash = splittable64(enemySpace);
-        uint64_t rotated_upper = upper_hash << 31 | upper_hash >> 33;
-        return lower_hash ^ rotated_upper;
-    
-    }
-
 
 
     int genPossibleMoves(int depth)
@@ -170,7 +145,7 @@ struct gameState
         return ind;
     }
 
-    ll evalState(bool verbose = false)
+    int evalState(bool verbose = false)
     {
         ull freeSpace = ~(mySpace | enemySpace);
 
@@ -203,6 +178,7 @@ struct gameState
             x = Shift(x, dir) & freeSpace;
 
             ull xDef = (Shift(x,6) & (enemySpace | mySpace)) | (x & 0x1ff);
+
             
             enemy_threesDef += __builtin_popcountll(xDef);
             enemy_threesProb += __builtin_popcountll(x & (~xDef));
@@ -246,7 +222,7 @@ struct gameState
         ans += (my_threesProb - enemy_threesProb) * 10;
 
 
-        ll my_duos = 0, enemy_duos = 0;
+        int my_duos = 0, enemy_duos = 0;
         for(int dir = 0; dir < 8; dir++)
         {
             ull x = enemySpace;
@@ -322,122 +298,43 @@ struct gameState
             if (x > 0) prev_won = 1;
         }
 
+        if(prev_won)
+        {
+            // cout << "EZ ";
+            // if(color == player_color) cout << "ENEMY\n";
+            // else cout << "JA\n";depth
+            // print();
+            // cout << mySpace << " " << enemySpace << "\n";
+        }
+
         if (color == player_color) prev_won *= -1;
         return prev_won;
     }
 };
 
-
-enum Flag : int8_t
-{
-    kdefault = 0,
-    klowerbound = 1,
-    kupperbound = 2,
-};
-
-struct TTentry
-{
-    gameState stanGry;
-    uint64_t hash;
-    int32_t value;
-    int16_t move;
-    int16_t depth;
-    Flag flag;
-
-    TTentry()
-    {
-        hash = 0;
-        value = 0;
-        move = -1;
-        depth = 0;
-        flag = kdefault;
-    }
-};
-
-const int TTsize = (1 << 22);
-const int INDEX_MASK = TTsize - 1;
-
-TTentry TTtable[TTsize];
-
-int ttstats_collisions, ttstats_movecollisions, ttstats_eqstate, ttstats_ERROR1;
-
-bool isValid(const TTentry &entry, gameState &state2,
-const uint64_t hash2)
-{
-    if constexpr (PDF)
-    {
-        if (entry.hash == 0) return false ; // invalid entry
-
-        if (entry.hash != hash2) { // type-2 error
-            ttstats_collisions ++; return false ;
-        }
-        if (!state2.goodMove(entry.move)) { // hash move error
-            ttstats_movecollisions ++; return false ;
-        }
-        if(entry.stanGry.mySpace == state2.mySpace && entry.stanGry.enemySpace == state2.enemySpace)
-        {
-            ttstats_eqstate++;
-            return true;
-        }
-        ttstats_ERROR1 ++; // type-1 error
-        return false ; // or exit with error for debug
-    } else 
-    {
-        return entry.hash == hash2 && state2.goodMove(entry.move);
-    }
-}
+int move_chosen = 0;
 
 template <int player> 
 int alfa_beta(gameState state, int depth, int alfa, int beta)
 {
-
-    if constexpr (PDF) nodes_visited[depth] ++;
-
-
-
-    int initAlpha = alfa, initBeta = beta;
-    uint64_t hash = state.hash();
-
-    //state.print();
-    //cout << "HASH " << hash << "\n";
-
-    //cout << TTsize << "\n";
-    //cout << INDEX_MASK << "\n";
-    //cout << (hash & INDEX_MASK) << "\n";
-    //cout << "HASH & INDEX " << (hash & INDEX_MASK) << "\n";
-
-    TTentry &entry = TTtable[hash & INDEX_MASK]; // retrieve
-
-    //cout << entry.hash << " " << entry.depth << " " << entry.value << " " << entry.move << "\n";
-    if (isValid(entry, state, hash)) // todo if change 
-    { 
-        if (entry.depth + depth >= max_depth) // and of enough quality
-        { 
-            switch (entry.flag) 
-            {
-                case Flag::kdefault : { return entry.value; }
-                case Flag::klowerbound : {if (entry.value > alfa) alfa = entry.value;} break;
-                case Flag::kupperbound : {if (entry.value < beta) beta = entry.value;} break;
-            }
-            if (alfa >= beta) return entry.value; // TODO add to cases
-        }
-    }
-
+    if constexpr (DEBUG) nodes_visited ++;
     int checkForWin = state.checkWin();
     if (checkForWin != 0) return checkForWin * end_cost;
-
-    if (depth >= max_depth) return state.evalState();
-    
     
 
     gettimeofday(&end_time,NULL);
     ull diff = (end_time.tv_sec - start_time.tv_sec) * 1000 + (end_time.tv_usec - start_time.tv_usec) / 1000;
     if( diff >= time_for_turn) return INT_MIN;
+
+    
+    if(depth >= max_depth) return state.evalState();
     
     int n = state.genPossibleMoves(depth);
-
-    int score = INT_MIN;
-    uint8_t move;
+    
+    if(n == 0)
+    {
+        return 0;
+    }
 
     if constexpr (KH)
     {
@@ -489,122 +386,92 @@ int alfa_beta(gameState state, int depth, int alfa, int beta)
 
     if constexpr (player == MAX)
     {
-        score = INT_MIN;
-
-        if (state.goodMove(entry.move))
+        vector<pair<int,gameState>> debug;
+        int id = 0;
+        bool debugBeta = 0;
+        for(int i = 0; i < n; i++)
         {
-            gameState newState = state.doMove(entry.move);
+            gameState newState = state.doMove(possibleMoves[depth][i]);
             int eval = alfa_beta<MIN>(newState, depth+1, alfa, beta);
-            if (eval>score)
+
+            // if (eval == end_cost || eval == -end_cost) return eval;
+            debug.push_back({eval, newState});
+
+            // cout << "Move " << move_chosen << " Max_depth " << max_depth << " Depth: " << depth << " MOVE: " << possibleMoves[depth][i] << " " << eval << "\n";
+            // newState.print();
+
+            if (eval == INT_MIN) return INT_MIN;
+
+            if(eval >= beta)
             {
-                score=eval; move=entry.move;
-                if (eval > alfa) 
+                if constexpr (KH)
                 {
-                    alfa = eval;
-                    if(eval >= beta)
-                    {
-                        if constexpr (KH)
-                        {
-                            killers[depth][1] = killers[depth][0];
-                            killers[depth][0] = entry.move;
-                        }
-                        goto end;
-                    } 
+                    killers[depth][1] = killers[depth][0];
+                    killers[depth][0] = possibleMoves[depth][i];
                 }
+                debugBeta = 1;
+                // return beta;
             }
+            alfa = max(alfa,eval);
             
         }
 
-        for(int i = 0; i < n; i++)
+        for(auto it : debug)
         {
-            gameState newState = state.doMove(possibleMoves[depth][i]);
-            int eval = alfa_beta<MIN>(newState, depth+1, alfa, beta);
-
-            if (eval == INT_MIN) return INT_MIN;
-
-            if (eval > score)
-            {
-                score=eval; move=possibleMoves[depth][i];
-                if (eval > alfa) 
-                {
-                    alfa = eval;
-                    if (eval >= beta)
-                    {
-                        if constexpr (KH)
-                        {
-                            killers[depth][1] = killers[depth][0];
-                            killers[depth][0] = possibleMoves[depth][i];
-                        }
-                        goto end;
-                    } 
-                }
-            }
+            int eval = it.first;
+            gameState newState = it.second;
+            cout << "Move " << move_chosen << " Max_depth " << max_depth << " Depth: " << depth << " MOVE: " << possibleMoves[depth][id++] << " " << eval << "\n";
+            cout << newState.mySpace << " " << newState.enemySpace << "\n";
+            newState.print();
         }
 
+        if(debugBeta) return beta;
+        return alfa;
+
+        return beta;
     } else // player MIN
     {
-        score = INT_MAX;
-
-        if (state.goodMove(entry.move))
-        {
-            gameState newState = state.doMove(entry.move);
-            int eval = alfa_beta<MAX>(newState, depth+1, alfa, beta);
-            if (eval < score)
-            {
-                score=eval; move=entry.move;
-                if (eval < beta) 
-                {
-                    beta = eval;
-                    if(eval <= alfa)
-                    {
-                        if constexpr (KH)
-                        {
-                            killers[depth][1] = killers[depth][0];
-                            killers[depth][0] = entry.move;
-                        }
-                        goto end;
-                    } 
-                }
-            }
-        }
+        vector<pair<int,gameState>> debug;
+        int id = 0;
+        bool debugAlfa = 0;
         for(int i = 0; i < n; i++)
         {
             gameState newState = state.doMove(possibleMoves[depth][i]);
             int eval = alfa_beta<MAX>(newState, depth+1, alfa, beta);
 
+            debug.push_back({eval, newState});
+
+            // if (eval == end_cost || eval == -end_cost) return eval;
+
             if (eval == INT_MIN) return INT_MIN;
 
-            if (eval < score)
+            if(eval <= alfa)
             {
-                score=eval; move=entry.move;
-                if (eval < beta) 
+                if constexpr (KH)
                 {
-                    beta = eval;
-                    if(eval <= alfa)
-                    {
-                        if constexpr (KH)
-                        {
-                            killers[depth][1] = killers[depth][0];
-                            killers[depth][0] = possibleMoves[depth][i];
-                        }
-                        goto end;
-                    } 
+                    killers[depth][1] = killers[depth][0];
+                    killers[depth][0] = possibleMoves[depth][i];
                 }
+                debugAlfa = 1;
+                // return alfa;
             }
+            beta = min(beta,eval);
         }
-    }
 
-    end:
-    // if (depth >= entry.depth) 
-    // { // replace by depth strategy
-        Flag flag;
-        if (score <= initAlpha ) flag = Flag::kupperbound;
-        else if (score >= initBeta ) flag = Flag::klowerbound ;
-        else flag = Flag::kdefault ;
-        //store(entry, hash, depth, value, move);
-        entry.hash=hash; entry.depth=depth; entry.value=score; entry.move=move; entry.stanGry = state;
-    // }
-    return score;
+        for(auto it : debug)
+        {
+            int eval = it.first;
+            gameState newState = it.second;
+            cout << "Move " << move_chosen << " Max_depth " << max_depth << " Depth: " << depth << " MOVE: " << possibleMoves[depth][id++] << " " << eval << "\n";
+            cout << newState.mySpace << " " << newState.enemySpace << "\n";
+            newState.print();
+        }
+
+        if(debugAlfa) return alfa;
+        
+        return beta;
+
+    }
         
 }
 
@@ -615,7 +482,7 @@ int minmaxDecision(gameState toEval)
     max_depth = depth_to_start;
     bool stillTime = 1;
 
-    while(stillTime && max_depth <= 64)
+    while(stillTime && max_depth <= 63)
     {
         int n = toEval.genPossibleMoves(0);
         if(turn_index == 1) possibleMoves[0][n++] = -2;
@@ -627,17 +494,6 @@ int minmaxDecision(gameState toEval)
         {
 
             gameState newState = toEval.doMove(possibleMoves[0][i]);
-            if constexpr (DEBUG == 2)
-            {
-                if(max_depth == 7 || max_depth == 3 || max_depth == 13)
-                {
-                    cout << "depth: " << max_depth << " ";
-                    cout << "game After move " << possibleMoves[0][i] << "\n";
-                    newState.print();
-                    int val = newState.evalState(true);
-                    cout << "eval planszy: " << val << "\n"; 
-                }
-            }
             
             int checkForWin = newState.checkWin();
             if (checkForWin != 0)
@@ -648,13 +504,28 @@ int minmaxDecision(gameState toEval)
 
             int move = possibleMoves[0][i];
 
+            move_chosen = move;
+
             int minmaxEval = alfa_beta<MIN>(newState, 1, INT_MIN, INT_MAX);
 
             if constexpr (DEBUG == 2)
             {
-                if(max_depth == 7 || max_depth == 13)
+                if(i != -1)
                 {
-                    cout << "minmax val: " << minmaxEval << "\n";
+                    cout << "depth: " << max_depth << " ";
+                    cout << "game After move " << possibleMoves[0][i] << "\n";
+                    cout << newState.mySpace << " " << newState.enemySpace << "\n";
+                    newState.print();
+                    int val = newState.evalState(true);
+                    cout << "eval planszy: " << val << "\n"; 
+                }
+            }
+
+            if constexpr (DEBUG == 2)
+            {
+                if(i != -1)
+                {
+                    cout << "minmax val: " << minmaxEval << " " << maks << "\n\n\n";
                 }
             }
 
@@ -675,86 +546,61 @@ int minmaxDecision(gameState toEval)
     return best_move;
 }
 
-int enemyMoves[] = {1,  3,  1,  3,  4,  6,  4,  4,  6,  7,  3,  1,  2,  4,  6,  1,  7,  6,  8,  1,  0,  0,  0,  0,  8,  8,  5};
 
 int main()
 {
-    int my_id, opp_id;
-    // cin >> my_id >> opp_id; cin.ignore();
 
-    player_color = 1;
+    // stdout = stderr;
+    // int my_id, opp_id;
+    // cin >> my_id; cin.ignore();
+
 
     gameState game; 
     game.reset();
 
-    int id = 0;
+    time_for_turn = 95;
+
+    gettimeofday(&start_time,NULL);
+
+    player_color = 0;
+    game.mySpace = 2486866679208948599;
+    game.enemySpace = 888418195334907016;
+
+
+
+
+    // player_color = 0;
+    // game.mySpace = 2486866679276057463;
+    // game.enemySpace = 888418195334909064;
+
+    // cout << "WTF " << game.checkWin();
+    // return 0;
+
+    if constexpr (DEBUG)
+    {
+        cout << "After Enemy\n";
+        game.print();
+        int val = game.evalState(true);
+        cout << "EVAL: " << val << "\n";
+    }
+            
+
+
+    int my_move = minmaxDecision(game);
+    game = game.doMove(my_move);
+
+    if constexpr (DEBUG)
+    {
+        cout << "After Me\n";
+        game.print();
+        int val = game.evalState(true);
+        cout << "EVAL: " << val << "\n";
+    }
+    
+
+    cout << my_move << " ";
+
 
     // game loop
-    while (1) {
-        // cin >> turn_index; cin.ignore(); // ignore
-        if constexpr (DEBUG) cout << "CURRENT_TURN :" << turn_index << "\n";
-
-        gettimeofday(&start_time,NULL);
-        for(int i = 0; i < 64; i++)
-        {
-            nodes_visited[i] = 0;
-        }
-
-
-        int opp_previous_action = enemyMoves[id++];
-        if(id == 27) break;
-
-        if(opp_previous_action != -1)
-        {
-            game = game.doMove(opp_previous_action);
-
-            if constexpr (DEBUG)
-            {
-                cout << "After Enemy\n";
-                game.print();
-                int val = game.evalState(true);
-                cout << "EVAL: " << val << "\n";
-            }
-            
-        } 
-
-        cout << game.mySpace << " " << game.enemySpace << "\n";
-
-
-        int my_move = -1;
-        
-        my_move = minmaxDecision(game);
-        game = game.doMove(my_move);
-
-        if constexpr (DEBUG)
-        {
-            cout << "After Me\n";
-            game.print();
-            int val = game.evalState(true);
-            cout << "EVAL: " << val << "\n";
-        }
-        
-
-        cout << my_move << " ";
-
-        gettimeofday(&end_time,NULL);
-        ull diff = (end_time.tv_sec - start_time.tv_sec) * 1000 + (end_time.tv_usec - start_time.tv_usec) / 1000;
-
-        ull sum = 0;
-        if constexpr (PDF)
-        {
-            for(int i = 0; i <= max_depth-2; i++)
-            {   
-                sum += nodes_visited[i];
-                cout << "Depth Nodes Visited: " << i << " " << nodes_visited[i] << "\n";
-            }
-        }   
-        cout << "Sum: " << sum << "\n";
-        cout << "STATY: " << ttstats_collisions << " " <<  ttstats_movecollisions << " " << ttstats_eqstate << " " <<  ttstats_ERROR1 << "\n";
-        ttstats_collisions = ttstats_movecollisions =ttstats_eqstate = ttstats_ERROR1 = 0;
-        
-        cout << diff << " " << max_depth-2 << " " << best_eval << endl;
-
-        time_for_turn = 95;
-    }
+    
 }

@@ -5,7 +5,7 @@
 
 
 
-#include <bits/stdc++.h>
+#include<bits/stdc++.h>
 #include <sys/time.h>
 
 #define INLINE inline __attribute__((always_inline))
@@ -15,14 +15,14 @@
 using namespace std;
 
 
-constexpr int KH = 1;
+constexpr int KH = 0;
 constexpr int MAX = 1;
 constexpr int MIN = -1;
 constexpr int DEBUG = 0;
-constexpr int PDF = 1;
 
 int max_depth;
 int best_eval;
+
 
 int depth_to_start = 1;
 
@@ -34,12 +34,42 @@ int player_color;
 
 int turn_index; 
 
+enum Flag : int8_t
+{
+    kdefault = 0,
+    klowerbound = 1,
+    kupperbound = 2,
+};
+
+struct TTentry
+{
+    uint64_t hash;
+    int32_t value;
+    int8_t move;
+    int8_t depth;
+    Flag flag;
+
+    TTentry()
+    {
+        hash = 0;
+        value = 0;
+        move = -1;
+        depth = 0;
+        flag = kdefault;
+    }
+};
+
+const int TTsize = (1 << 22);
+const int INDEX_MASK = TTsize - 1;
+
+TTentry TTtable[TTsize];
 
 
 
 
 timeval start_time, end_time;
 int nodes_visited[500];
+
 int possibleMoves[500][10];
 int killers[500][10];
 
@@ -131,15 +161,15 @@ struct gameState
             {
                 int ind = i * 9 + j;
                 if (Get(ind, freeSpace))
-                    cout << ".";
+                    cerr << ".";
                 else if (Get(ind, mySpace))
-                    cout << '1';
+                    cerr << '1';
                 else if (Get(ind, enemySpace))
-                    cout << '0';
+                    cerr << '0';
             } 
-            cout << "\n";
+            cerr << "\n";
         }
-        cout << "\n";
+        cerr << "\n";
     }
 
     ull hash()
@@ -189,9 +219,9 @@ struct gameState
                 x = Shift(x, 2) & enemySpace;
                 x = Shift(x, 2) & enemySpace;
                 x = Shift(x, 2) & freeSpace;
-                cout << "POMOCY: " << x << "\n";
+                cerr << "POMOCY: " << x << "\n";
                 ull xDef = (Shift(x,6) & (enemySpace | mySpace)) | (x & 0x1ff);
-                cout << "POMOCYDEF: " << xDef << "\n";
+                cerr << "POMOCYDEF: " << xDef << "\n";
             }
             
         }
@@ -240,10 +270,10 @@ struct gameState
         }
         if(verbose)
         {
-            cout << my_threesProb << " " << enemy_threesProb << " " << my_threesDef << " " << enemy_threesDef << "\n";
+            cerr << my_threesProb << " " << enemy_threesProb << " " << my_threesDef << " " << enemy_threesDef << "\n";
         }
 
-        ans += (my_threesProb - enemy_threesProb) * 10;
+        ans += (my_threesProb - enemy_threesProb) * 5;
 
 
         ll my_duos = 0, enemy_duos = 0;
@@ -263,14 +293,14 @@ struct gameState
         }
         if(verbose)
         {
-            cout << my_duos << " " << enemy_duos << "\n";
+            cerr << my_duos << " " << enemy_duos << "\n";
         }
 
         ans += my_duos - enemy_duos;
 
         if(verbose)
         {
-            cout << "Kolory: " << color << " " << player_color << "\n";
+            cerr << "Kolory: " << color << " " << player_color << "\n";
         }
 
         if(color != player_color)
@@ -311,87 +341,33 @@ struct gameState
 
     int checkWin()
     {
-        int prev_won = 0;
+        int won = 0;
 
         for(int dir = 0; dir < 8; dir++)
-        {
-            ull x = enemySpace;
+        {           
+            ull x = mySpace;
+            x = Shift(x, dir) & mySpace;
+            x = Shift(x, dir) & mySpace;
+            x = Shift(x, dir) & mySpace;
+            if (x > 0) won = 1;
+
+            x = enemySpace;
             x = Shift(x, dir) & enemySpace;
             x = Shift(x, dir) & enemySpace;
             x = Shift(x, dir) & enemySpace;
-            if (x > 0) prev_won = 1;
+            if (x > 0) won = -1;
         }
 
-        if (color == player_color) prev_won *= -1;
-        return prev_won;
+        if (color != player_color) won *= -1;
+        return won;
     }
 };
-
-
-enum Flag : int8_t
-{
-    kdefault = 0,
-    klowerbound = 1,
-    kupperbound = 2,
-};
-
-struct TTentry
-{
-    gameState stanGry;
-    uint64_t hash;
-    int32_t value;
-    int16_t move;
-    int16_t depth;
-    Flag flag;
-
-    TTentry()
-    {
-        hash = 0;
-        value = 0;
-        move = -1;
-        depth = 0;
-        flag = kdefault;
-    }
-};
-
-const int TTsize = (1 << 22);
-const int INDEX_MASK = TTsize - 1;
-
-TTentry TTtable[TTsize];
-
-int ttstats_collisions, ttstats_movecollisions, ttstats_eqstate, ttstats_ERROR1;
-
-bool isValid(const TTentry &entry, gameState &state2,
-const uint64_t hash2)
-{
-    if constexpr (PDF)
-    {
-        if (entry.hash == 0) return false ; // invalid entry
-
-        if (entry.hash != hash2) { // type-2 error
-            ttstats_collisions ++; return false ;
-        }
-        if (!state2.goodMove(entry.move)) { // hash move error
-            ttstats_movecollisions ++; return false ;
-        }
-        if(entry.stanGry.mySpace == state2.mySpace && entry.stanGry.enemySpace == state2.enemySpace)
-        {
-            ttstats_eqstate++;
-            return true;
-        }
-        ttstats_ERROR1 ++; // type-1 error
-        return false ; // or exit with error for debug
-    } else 
-    {
-        return entry.hash == hash2 && state2.goodMove(entry.move);
-    }
-}
 
 template <int player> 
 int alfa_beta(gameState state, int depth, int alfa, int beta)
 {
 
-    if constexpr (PDF) nodes_visited[depth] ++;
+    if constexpr (DEBUG) nodes_visited[depth] ++;
 
 
 
@@ -399,17 +375,18 @@ int alfa_beta(gameState state, int depth, int alfa, int beta)
     uint64_t hash = state.hash();
 
     //state.print();
-    //cout << "HASH " << hash << "\n";
+    //cerr << "HASH " << hash << "\n";
 
-    //cout << TTsize << "\n";
-    //cout << INDEX_MASK << "\n";
-    //cout << (hash & INDEX_MASK) << "\n";
-    //cout << "HASH & INDEX " << (hash & INDEX_MASK) << "\n";
+    //cerr << TTsize << "\n";
+    //cerr << INDEX_MASK << "\n";
+    //cerr << (hash & INDEX_MASK) << "\n";
+    //cerr << "HASH & INDEX " << (hash & INDEX_MASK) << "\n";
 
     TTentry &entry = TTtable[hash & INDEX_MASK]; // retrieve
 
-    //cout << entry.hash << " " << entry.depth << " " << entry.value << " " << entry.move << "\n";
-    if (isValid(entry, state, hash)) // todo if change 
+    //cerr << entry.hash << " " << entry.depth << " " << entry.value << " " << entry.move << "\n";
+
+    if (entry.hash == hash && state.goodMove(entry.move)) // isValid(entry, s, hash);
     { 
         if (entry.depth + depth >= max_depth) // and of enough quality
         { 
@@ -419,7 +396,7 @@ int alfa_beta(gameState state, int depth, int alfa, int beta)
                 case Flag::klowerbound : {if (entry.value > alfa) alfa = entry.value;} break;
                 case Flag::kupperbound : {if (entry.value < beta) beta = entry.value;} break;
             }
-            if (alfa >= beta) return entry.value; // TODO add to cases
+            if (alfa >= beta) return entry.value; // cutoff
         }
     }
 
@@ -435,6 +412,7 @@ int alfa_beta(gameState state, int depth, int alfa, int beta)
     if( diff >= time_for_turn) return INT_MIN;
     
     int n = state.genPossibleMoves(depth);
+    if(n == 0) return 0; // DRAW
 
     int score = INT_MIN;
     uint8_t move;
@@ -595,18 +573,20 @@ int alfa_beta(gameState state, int depth, int alfa, int beta)
     }
 
     end:
-    // if (depth >= entry.depth) 
-    // { // replace by depth strategy
+    if (depth >= entry.depth) 
+    { // replace by depth strategy
         Flag flag;
         if (score <= initAlpha ) flag = Flag::kupperbound;
         else if (score >= initBeta ) flag = Flag::klowerbound ;
         else flag = Flag::kdefault ;
         //store(entry, hash, depth, value, move);
-        entry.hash=hash; entry.depth=depth; entry.value=score; entry.move=move; entry.stanGry = state;
-    // }
+        entry.hash=hash; entry.depth=depth; entry.value=score; entry.move=move;
+    }
     return score;
         
 }
+
+int lose_move[10];
 
 int minmaxDecision(gameState toEval)
 {
@@ -623,6 +603,8 @@ int minmaxDecision(gameState toEval)
         int maks = INT_MIN;
         int cbest_move = -1;
         int cbest_eval = INT_MIN;
+        int lose_id = 0;
+        bool loosing = 0;
         for(int i = 0; i < n; i++)
         {
 
@@ -631,20 +613,14 @@ int minmaxDecision(gameState toEval)
             {
                 if(max_depth == 7 || max_depth == 3 || max_depth == 13)
                 {
-                    cout << "depth: " << max_depth << " ";
-                    cout << "game After move " << possibleMoves[0][i] << "\n";
+                    cerr << "depth: " << max_depth << " ";
+                    cerr << "game After move " << possibleMoves[0][i] << "\n";
                     newState.print();
                     int val = newState.evalState(true);
-                    cout << "eval planszy: " << val << "\n"; 
+                    cerr << "eval planszy: " << val << "\n"; 
                 }
             }
             
-            int checkForWin = newState.checkWin();
-            if (checkForWin != 0)
-            {
-                best_eval = 80085;
-                return possibleMoves[0][i]; // wygrywający ruch
-            }
 
             int move = possibleMoves[0][i];
 
@@ -654,11 +630,18 @@ int minmaxDecision(gameState toEval)
             {
                 if(max_depth == 7 || max_depth == 13)
                 {
-                    cout << "minmax val: " << minmaxEval << "\n";
+                    cerr << "minmax val: " << minmaxEval << "\n";
                 }
             }
 
             if(minmaxEval == INT_MIN) return best_move;
+
+            // if(minmaxEval == end_cost)
+            // {
+            //     best_eval = 80085;
+            //     return possibleMoves[0][i]; // wygrywający ruch
+            // }
+            
 
 
             if(minmaxEval >= maks)
@@ -668,6 +651,7 @@ int minmaxDecision(gameState toEval)
                 cbest_move = possibleMoves[0][i];
             }
         }
+
         best_eval = cbest_eval;
         best_move = cbest_move;
         max_depth += 2;
@@ -675,24 +659,22 @@ int minmaxDecision(gameState toEval)
     return best_move;
 }
 
-int enemyMoves[] = {1,  3,  1,  3,  4,  6,  4,  4,  6,  7,  3,  1,  2,  4,  6,  1,  7,  6,  8,  1,  0,  0,  0,  0,  8,  8,  5};
 
 int main()
 {
+    bool first = 1;
     int my_id, opp_id;
-    // cin >> my_id >> opp_id; cin.ignore();
+    cin >> my_id >> opp_id; cin.ignore();
 
-    player_color = 1;
+    player_color = my_id;
 
     gameState game; 
     game.reset();
 
-    int id = 0;
-
     // game loop
     while (1) {
-        // cin >> turn_index; cin.ignore(); // ignore
-        if constexpr (DEBUG) cout << "CURRENT_TURN :" << turn_index << "\n";
+        cin >> turn_index; cin.ignore(); // ignore
+        if constexpr (DEBUG) cerr << "CURRENT_TURN :" << turn_index << "\n";
 
         gettimeofday(&start_time,NULL);
         for(int i = 0; i < 64; i++)
@@ -700,9 +682,23 @@ int main()
             nodes_visited[i] = 0;
         }
 
+        for (int i = 0; i < 7; i++) { // ignore
+            string board_row; 
+            cin >> board_row; cin.ignore();
+        } 
 
-        int opp_previous_action = enemyMoves[id++];
-        if(id == 27) break;
+
+        int num_valid_actions;
+        cin >> num_valid_actions; cin.ignore();
+
+
+        for (int i = 0; i < num_valid_actions; i++) { // ignore
+            int action;
+            cin >> action; cin.ignore();
+        }
+
+        int opp_previous_action;
+        cin >> opp_previous_action; cin.ignore();
 
         if(opp_previous_action != -1)
         {
@@ -710,28 +706,45 @@ int main()
 
             if constexpr (DEBUG)
             {
-                cout << "After Enemy\n";
+                cerr << "After Enemy\n";
                 game.print();
                 int val = game.evalState(true);
-                cout << "EVAL: " << val << "\n";
+                cerr << "EVAL: " << val << "\n";
             }
             
         } 
 
-        cout << game.mySpace << " " << game.enemySpace << "\n";
+        cerr << game.mySpace << " " << game.enemySpace << "\n";
 
+
+        if (turn_index == 1) num_valid_actions --;
+
+        
+        int my_valid_actions = game.genPossibleMoves(0);
+
+
+        assert(my_valid_actions == num_valid_actions);
 
         int my_move = -1;
+
+        if(turn_index <=  3)
+        {
+            cerr << "RANDOM\n";
+            my_move = 2 + (rand()%4); 
+            first = false;
+        } else 
+        {
+            my_move = minmaxDecision(game);
+        }
         
-        my_move = minmaxDecision(game);
         game = game.doMove(my_move);
 
         if constexpr (DEBUG)
         {
-            cout << "After Me\n";
+            cerr << "After Me\n";
             game.print();
             int val = game.evalState(true);
-            cout << "EVAL: " << val << "\n";
+            cerr << "EVAL: " << val << "\n";
         }
         
 
@@ -740,20 +753,14 @@ int main()
         gettimeofday(&end_time,NULL);
         ull diff = (end_time.tv_sec - start_time.tv_sec) * 1000 + (end_time.tv_usec - start_time.tv_usec) / 1000;
 
-        ull sum = 0;
-        if constexpr (PDF)
+        if(DEBUG)
         {
             for(int i = 0; i <= max_depth-2; i++)
-            {   
-                sum += nodes_visited[i];
-                cout << "Depth Nodes Visited: " << i << " " << nodes_visited[i] << "\n";
+            {
+                cerr << "Depth Nodes Visited: " << nodes_visited[i] << "\n";
             }
-        }   
-        cout << "Sum: " << sum << "\n";
-        cout << "STATY: " << ttstats_collisions << " " <<  ttstats_movecollisions << " " << ttstats_eqstate << " " <<  ttstats_ERROR1 << "\n";
-        ttstats_collisions = ttstats_movecollisions =ttstats_eqstate = ttstats_ERROR1 = 0;
-        
-        cout << diff << " " << max_depth-2 << " " << best_eval << endl;
+        }
+        cout << diff << " " << max_depth-2 << " " << best_eval << " " << endl;
 
         time_for_turn = 95;
     }
