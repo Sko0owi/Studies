@@ -49,6 +49,7 @@ def brut(n,e,c):
 
         if is_prime(p) and is_prime(q):
             d = invert(e,mul((p-1),(q-1)))
+            print(hex(int(powmod(c,d,n))))
             print(int2bytes(powmod(c,d,n)).decode())
             break
 
@@ -63,46 +64,26 @@ def better_brut(n,e,c):
 
     d = invert(e,mul((p-1),(q-1)))
 
+    
     print(int2bytes(powmod(c,d,n)).decode())
     
 
 
-hope = "Niniejszym zaświadcza się, że liczba punktów przyznawanych za to zadanie wynosi "
+# hope = "Niniejszym zaświadcza się, że liczba punktów przyznawanych za to zadanie wynosi 2+5."
 
-def hope_brut(n,e,c):
+# def hope_brut(n,e,c):
 
-    m,test = iroot(c,e)
-    print(test)
-    if test == False:
-        return
-
-    print(type(m))
-    assert(powmod(m,e,n) == c)
-
-    print(is_integer(m))
-
-    # print(rootn(c,3))
-    print(int2bytes(m).decode())
-    # # message = hope
-    # for i in range(-1000,1001):
-    #     print(i)
-    #     message = hope
-    #     message = message + str(i)
-    
-    #     message = str2int(message)
-
-    #     if (powmod(message,e,n) == c):
-    #         print("POOOOG")
-    #         break
-
+#     message = str2int(hope)
+#     if powmod(message,e,n) == c:
+#         print("POOOG")
     
     
 
 if __name__ == "__main__":
-    n, e, c = read_file("test2.txt")
+    n, e, c = read_file("test4.txt")
 
-    # brut(n,e,c)
+    brut(n,e,c)
 
     # better_brut(n,e,c)
 
-    hope_brut(n,e,c)
+    # hope_brut(n,e,c)

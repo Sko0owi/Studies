@@ -1,81 +1,67 @@
-from Crypto.Cipher import AES
-from Crypto.Random import get_random_bytes
-import random
 
-def decide(s):
-    if s == 1:
-        return "AES"
-    return "random"
 
-class AdamPlain(): 
-    def __init__(self) -> None:
-        self.key = get_random_bytes(16)
-        self.alg = random.choice([1, 2]) 
-        self.map = {}
+alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+alphalen = len(alphabet)
+num2char = dict(enumerate(alphabet))
+char2num = { num2char[n]:n for n in num2char }
 
-    def random_perm(self, plaintext, iv):
-        for block in plaintext:
-            key = (block, iv)
-            if key not in self.map:
-                self.map[key] = get_random_bytes(len(plaintext))
-        return self.map[key]
+def encodeChar(c, k):
+    return num2char[(char2num[c]+char2num[k]) % alphalen]
 
-    def encrypt_plain(self, plaintext, iv):
-        if self.alg == 1:
-            return self.get_blocks(AES.new(self.key, AES.MODE_CBC, iv=iv).encrypt(plaintext))
-        else:
-            return self.get_blocks(self.random_perm(plaintext, iv))
+def decodeChar(c, k):
+    return num2char[(char2num[c] - char2num[k] + alphalen) % alphalen]
 
-    @staticmethod
-    def get_blocks(s):
-        return [s[i : i + AES.block_size] for i in range(0, len(s), AES.block_size)]
+def encode(plaintext, key):
+    keylen = len(key)
+    ciphertext = [encodeChar(plaintext[n], key[n%keylen]) for n in range(len(plaintext))]
+    return ''.join(ciphertext)
+
+
+def decode(ciphertext, key):
+    keylen = len(key)
+    plaintext = [decodeChar(ciphertext[n], key[n%keylen]) for n in range(len(ciphertext))]
+    return ''.join(plaintext)
+
+
+toDecode = "FDGEFYQUMYMODKBFASDMBTQD"
+
+possibleplaintext = []
+for k in alphabet:
+    possibleplaintext.append((k,decode(toDecode, k)))
+    #print(k, decode(toDecode, k))
+
+print(possibleplaintext[ord('M')-ord('A')])
     
-class AdamEncrypted(AdamPlain): 
-    def encrypt_enc(self, plaintext, iv):
-        if self.alg == 1:
-            enc_iv = super().encrypt_plain(iv, b'\x00'*16)[0]
-            return self.get_blocks(AES.new(self.key, AES.MODE_CBC, iv = enc_iv).encrypt(plaintext))
-        else:
-            return self.get_blocks(self.random_perm(plaintext, iv))
 
-if __name__ == '__main__':
-    mode = input("Choose mode p/e\n")
+toDecode = "XHQPMFTFSJBHAMEHGIGHISHLPHLJAECWRVSRJWXNQECBSIQSCQSRHERWTWSVLVMRVLJAECWRVSRJWXNQECBSIFIHCPKS"
 
-    # Plain Test
-    if mode == 'p':
-        print("Plain AES")
-        adam_plain = AdamPlain()
-        plaintext1 = b'\x00'*32
-        plaintext2 = b'\x00'*16
-        iv = b'\x00'*16
-        
-        c1 = adam_plain.encrypt_plain(plaintext1, iv)
+possibleplaintext = []
+possibleKeys = [[],[],[],[],[]]
 
-        c2 = adam_plain.encrypt_plain(plaintext2, c1[0])
+curr_key = ""
+key_prefix = "ITMAY"
 
-        # print(c1[1])
-        # print(c2[0])
-        print("For alg: ", decide(adam_plain.alg))
-        if c1[1] == c2[0]:
-            print("Used AES algorithm")
-        else:
-            print("It's random algo")
+for k in alphabet:
+    if(encode(key_prefix,k)[0] == toDecode[0]):
+        possibleKeys[0].append(k)
+    
 
-    # Encrypted Test
-    elif mode == 'e':
-        print("Encrypted AES")
-        adam_enc = AdamEncrypted()
-        plaintext1 = b'\x00'*32
-        plaintext2 = b'\x00'*16
-        iv = b'\x00'*16
-        
-        c1 = adam_enc.encrypt_enc(plaintext1, iv)
-        # print("C1 :", c1)
-        c2 = adam_enc.encrypt_enc(plaintext2+c1[0], iv)
-        # print("C2 :", c2)
 
-        print("For alg: ", decide(adam_enc.alg))
-        if c1[0] == c2[0]:
-            print("Used AES algorithm")
-        else:
-            print("It's random algo")
+for i in range(1, len(key_prefix)):
+    for k in alphabet:
+        if(encode(key_prefix,k)[i] == toDecode[i]):
+            for key in possibleKeys[i-1]:
+                possibleKeys[i].append(key + k)            
+            
+
+print(possibleKeys)
+
+for keys in possibleKeys:
+    for key in keys:
+        print()
+        print(key, decode(toDecode, key))
+
+
+# print(possibleplaintext[ord('M')-ord('A')])
+    
+    

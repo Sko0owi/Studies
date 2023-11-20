@@ -8,17 +8,18 @@ from cryptography.hazmat.primitives import hashes
 
 wersy = []
 
-PREFIX_LENGTH = 6
+PREFIX_LENGTH = 7
 
-DEBUG = 1
+DEBUG = 0
 
 def genSpaces():
 
     nowe_wersy = []
-    for wers in wersy:
-        if(random.random() <= 0.5):
-            wers += ' '
-        wers += '\n'
+    for spacje in range(2):
+        for wers in wersy:
+            if(random.random() <= 0.5):
+                wers += ' '
+            wers += '\n'
         nowe_wersy.append(wers)
     
     

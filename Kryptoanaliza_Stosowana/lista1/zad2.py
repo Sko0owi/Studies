@@ -1,78 +1,100 @@
-import os
+alphabet = "AĄBCĆDEĘFGHIJKLŁMNŃOÓPQRSŚTUVWXYZŻŹ"
+alphasize = len(alphabet)
+num2char = dict(enumerate(alphabet))
+char2num = { num2char[n]:n for n in num2char }
 
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.primitives import padding
+def encodeChar(c, k):
+    return num2char[(char2num[c]+char2num[k]) % alphasize]
+def decodeChar(c, k):
+    return num2char[(char2num[c] - char2num[k] + alphasize) % alphasize]
+def encode(plaintext, key):
+    ciphertext = [encodeChar(plaintext[n], key[n]) for n in range(len(plaintext))]
+    return ''.join(ciphertext)
 
-def wyrocznia(ct):
-    decryptor = cipher.decryptor()
-    decrypted_pt = decryptor.update(ct) + decryptor.finalize()
-    try:
-        unpadder = padding.PKCS7(128).unpadder()
-        decrypted_pt = unpadder.update(decrypted_pt) + unpadder.finalize()
-        return True
-    except ValueError:
-        return False
+toDecode1 = "ĘĘKGCATDUJXNYYVXWÓWUĄVŹGJĘCŃŁQŃJAŁGEJWXNYĆŃKXŁMJMOWŃAVVCUBWLŃARJHÓŁVBIONKFQJMEĄŃŹJAEHĆQEŁRIŁŚŹFMŹNŚŁFAĘXTOPŚŹUĆŃPBUŚAGWYZGHUHRWUGKFŚKĄYV"
+toDecode2 = "ŁUXBUQLĄNUAÓĘCŃŁĆŚDNŁVSSGĘGKĆPLIRDWVÓDŃŚŁÓĘŃNWWOŚZFĆŚSŹBŻUSIKUĆHHUĆUĘŁVILCWRŹBAYMYBKŹŁFRKŃŃCIŹUŻDSTHEOOLLOÓIŁZVPJŁŻWGDŃĆFŹFQKOAĄSZAVĆŻŁŚ"
+toDecode2reszta = "JADLCŹDWEŁHBĆQZXPĘINLĘYXYAŻTLQMNĄĆŻWU"
 
+decode1Xordecode2 = ""
 
-key = os.urandom(16)
+slowa = [""]
 
-iv = bytes("encryptionIntVec", 'utf-8')
+for i in range(len(toDecode1)):
+    decode1Xordecode2 += decodeChar(toDecode1[i], toDecode2[i])
 
-plaintext = bytes.fromhex("554c5452412054414a4e45204841534c4f203a20534b4f57493131")
-
-print("plaintext:", plaintext.decode('utf-8'))
-
-cipher = Cipher(algorithms.AES128(key), modes.CBC(iv))
-
-
-
-padder = padding.PKCS7(128).padder()
-padded_pt = padder.update(plaintext) + padder.finalize()
-print("plaintext with padding: ",padded_pt)
-
-encryptor = cipher.encryptor()
-ct = encryptor.update(padded_pt) + encryptor.finalize()
+print(decode1Xordecode2)
 
 
+# alphabetStart = "CDEFGHIKLMNOTŻŹ"
+# test_dict = {}
+# for char in alphabetStart:
+#     fw_2 = decodeChar(char,decode1Xordecode2[0])
+#     test_dict[char] = fw_2
 
-decryptor = cipher.decryptor()
-decrypted_pt = decryptor.update(ct) + decryptor.finalize()
+# print(test_dict)
 
-unpadder = padding.PKCS7(128).unpadder()
-decrypted_pt = unpadder.update(decrypted_pt) + unpadder.finalize()
+polish_words_dict = {}
+with open('zad2.txt', 'r') as f:
+    polish_words = [x.strip() for x in f.readlines()][1:]
+    for x in polish_words:
+        bad = False
+        for char in x:
+            # print(char, end="")
+            if char.upper() not in alphabet:
+                bad = True
+        # print(bad)
+        if bad == False and len(x) >= 1:
+            polish_words_dict[x.upper()] = True
 
-print("decoding_test ",decrypted_pt.decode('utf-8'))
+# for word in polish_words_dict:
+#     print(word)
+#     next = input("next?:")
+#     if next == "y":
+#         continue
+#     else:
+#         break
+print("KONIEC WCZYTANIA")
 
+for word in polish_words_dict:
+    fw_2 = ""
+    for i in range(len(word)):
+        fw_2 += decodeChar(word[i].upper(), decode1Xordecode2[i])
+    
+    # print(word)
+    # print(fw_2)
+    # print()
+    
+    good = False
+    ile = 0
+    matches = []
+    for i in range(len(word)):
+        if fw_2[:i] in polish_words_dict:
+            good = True
+            ile += 1
+            matches.append(fw_2[:i])
+            
+            
+    
+    if good == False or "Q" in fw_2 or "V" in fw_2 or "X" in fw_2:
+        continue
+    match_max_len = 0
+    for match in matches:
+        match_max_len = max(len(match), match_max_len)
+        print("MATCH: ", match)
+    print("MATCH MAX LEN: L", match_max_len)
+    print("MATCH TYLE BYL: C", ile)
+    print(word)
+    print(fw_2)
+    print()
 
-ct_to_hack = ct.hex()
-ct_to_hack = [ ct_to_hack[i:i+2] for i in range(0, len(ct_to_hack), 2) ] # bytes are standalone
+    # next = input("next?:")
+    # if next == "n":
 
-print(ct_to_hack)
-
-hacked_plaintext = ""
-Decrypt = [0]*16
-for i in range(15,-1,-1):
-    for prep in range(15,i,-1):
-        ct_to_hack[prep] = "{:02x}".format((15-i+1) ^ Decrypt[prep])
-    val_before_hack = ct_to_hack[i]
-
-    for byte in range(0,256):
-        
-        # if byte == int(val_before_hack,16):
-        #     print(byte, int(val_before_hack,16))
-        #     continue
-        ct_to_hack[i] = "{:02x}".format(byte)
-        if wyrocznia(bytes.fromhex(''.join(ct_to_hack))):
-            # print("mamy TO!", i)
-
-            if (15-i+1) ^ byte ^ int(val_before_hack,16) > Decrypt[i] ^ int(val_before_hack,16) or Decrypt[i] == 0:
-                Decrypt[i] = (15-i+1) ^ byte     
-                # print("prevDebug: ", (15-i+1) ^ byte, byte)
-                # print("Debug: ", Decrypt[i], int(val_before_hack,16), byte)
-
-    hacked_plaintext = "{:02x}".format(Decrypt[i] ^ int(val_before_hack,16)) + hacked_plaintext
-    print("current ans: ",hacked_plaintext, bytes.fromhex(hacked_plaintext))        
-print(bytes.fromhex(hacked_plaintext))
-print(bytes.fromhex(hacked_plaintext).decode('utf-8'))
-
-
+    #     break
+    # else:
+    continue
+    #     first_word1 = input("First word:")
+    # fw_2 = ""
+    # for i in range(len(first_word1)):
+    #     fw_2 += decodeChar(decode1Xordecode2[i], first_word1[i].upper())
+    # print(fw_2)

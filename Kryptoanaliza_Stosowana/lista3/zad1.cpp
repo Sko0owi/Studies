@@ -4,20 +4,26 @@ using namespace std;
 
 const int STR_LEN = 6;
 
-set<string> name_map;
+map<string,bool> name_map;
 
 
 
 
 void gen_names(int pos, string &curr_name)
 {   
-    if (name_map.find(curr_name) == name_map.end())
-    {
-        name_map.insert(curr_name);
-    }
+
 
     if (pos == STR_LEN)
+    {
+        if (!name_map[curr_name])
+        {
+            cout << curr_name << "\n";
+            name_map[curr_name] = true;
+        }
         return;
+    }
+        
+    
 
     for(int i = 'a'; i <= 'z'; i++)
     {
@@ -32,10 +38,6 @@ int main()
     string foo = "";
     gen_names(0, foo);
 
-    cout << name_map.size() << "\n";
-    for(auto it : name_map)
-    {
-        // cout << it.first << " " << it.second << "\n";
-    }
+
 
 }

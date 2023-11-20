@@ -1,69 +1,67 @@
-import os
-
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.primitives import padding
-
-key = os.urandom(16)
+from random import randint
 
 
-iv = bytes("giga_tajny_vec12",'ascii')
-plain_text = bytes("Send $100 to Bob from my account.               ",'ascii')
-print(len(plain_text))
-print(len(iv))
-print(plain_text.hex())
-print(iv.hex())
+alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+alphasize = len(alphabet)
+num2char = dict(enumerate(alphabet))
+char2num = {num2char[n]: n for n in num2char}
 
-cipher = Cipher(algorithms.AES128(key), modes.CBC(iv))
-
-encryptor = cipher.encryptor()
-ct = encryptor.update(plain_text) + encryptor.finalize()
-print("CT:",ct)
-print("CT HEX:", ct.hex())
-ct_to_hack = ct.hex()
-ct_to_hack = [ ct_to_hack[i:i+2] for i in range(0, len(ct_to_hack), 2) ] # bytes are standalone
-
-print(ct_to_hack    )
-
-iv_better_hex = iv.hex()
-iv_better_hex = [ iv_better_hex[i:i+2] for i in range(0, len(iv_better_hex), 2)]
+def genKey(n: int):
+    key = ""
+    for _ in range(n):
+        key += alphabet[randint(0, alphasize-1)]
+    return key
 
 
-iv_hex_last = iv_better_hex[13:16]
-ct_hex_last = ct_to_hack[13:16]
-pt_hex_last = [ int(bytes("Bob",'ascii').hex()[i:i+2],16) for i in range(0, len(bytes("Bob",'ascii').hex()), 2)]
+def encodeChar(c, k):
+    return num2char[(char2num[c] + char2num[k]) % alphasize]
 
-newpt_hex_last = [ int(bytes("Eve",'ascii').hex()[i:i+2],16) for i in range(0, len(bytes("Eve",'ascii').hex()), 2)]
 
-print(iv_hex_last)
-print(ct_hex_last)
-print(pt_hex_last)
+def decodeChar(c, k):
+    return num2char[(char2num[c] - char2num[k] + alphasize) % alphasize]
 
-IP = [0]*3
 
-for i in range(3):
-    IP[i] = int(iv_hex_last[i],16) ^ pt_hex_last[i]
-    
-print(IP)
+def encode(plaintext, key):
+    ciphertext = [encodeChar(plaintext[n], key[n]) for n in range(len(plaintext))]
+    return ''.join(ciphertext)
 
-newIV = [0]*3
-for i in range(3):
-    newIV[i] = "{:02x}".format(IP[i] ^ newpt_hex_last[i])
 
-print(newIV)
+def decode(ciphertext, key):
+    plaintext = [decodeChar(ciphertext[n], key[n]) for n in range(len(ciphertext))]
+    return ''.join(plaintext)
 
 
 
-decryptor = cipher.decryptor()
-plain_text = decryptor.update(ct) + decryptor.finalize()
-print(plain_text)
+# def fake_key(ct: str, fake_text: str):
+#     if len(ct) != len(fake_text):
+#         return {'error': 'bad size of one of {ciphertext, fake-text}'}
+#     fake = decode(fake_text, ct)
+#     return {
+#         "fake_key": fake
+#     }
 
 
-
-hackedIV = iv_better_hex[0:13] + newIV
-print(len(''.join(hackedIV)))
-hackedIV = bytes.fromhex(''.join(hackedIV))
-print(hackedIV)
-cipherEVE = Cipher(algorithms.AES128(key), modes.CBC(hackedIV))
-decryptor = cipherEVE.decryptor()
-hacked_pt = decryptor.update(ct) + decryptor.finalize()
-print(hacked_pt)
+while(1):
+    print("1. Encode Message")
+    print("2. Decode Message")
+    print("3. Generate Fake Key")
+    print("4. Exit")
+    x = input("Choose your fighter: ")
+    if x == "1":
+        plaintext = input("input plaintext: ")
+        key = genKey(len(plaintext))
+        ciphertext = encode(plaintext,key)
+        print("encoded message: ", ciphertext)
+        print("key used for encryption: ", key)
+    elif x == "2":
+        ciphertext = input("input ciphertext: ")
+        key = input("input key: ")
+        plaintext = decode(ciphertext,key)
+        print("decoded message: ", plaintext)
+    elif x == "3":
+        ciphertext = input("input ciphertext: ")
+        fakemessage = input("input fake message: ")
+        fakekey = decode(ciphertext,fakemessage)
+        print("your fake key: ", fakekey)
+    elif x == "4":
+        exit()

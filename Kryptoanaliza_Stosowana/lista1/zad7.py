@@ -1,73 +1,85 @@
-import os
+import matplotlib.pyplot as plt
 
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.primitives import padding
-
-
-key = os.urandom(16)
-
-iv = os.urandom(16)
-
-plain_text = bytes("Głucha noc, Miasto płacze znowu, czy wysłucha ktoś? Cichosza, cichosza Jest za cicho, także puszczaj to na blok",'utf-8')
-
-plain_text_my = bytes("HELLO YOUR COMPUTER HAS A VIRUS PLEASE GIB ME MONEY", 'utf-8')
-
-padder = padding.PKCS7(128).padder()
-pt = padder.update(plain_text) + padder.finalize()
-
-padder = padding.PKCS7(128).padder()
-pt_my = padder.update(plain_text_my) + padder.finalize()
-
-pt_hex = pt.hex()
-pt_my_hex = pt_my.hex()
-
-blocks_pt_hex = [bytes.fromhex(pt_hex[i:i+32]) for i in range(0,len(pt_hex),32)]
-blocks_pt_my_hex = [bytes.fromhex(pt_my_hex[i:i+32]) for i in range(0,len(pt_my_hex),32)]
-
-# print(blocks_pt_hex)
-# print(blocks_pt_my_hex)
+alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+alphalen = len(alphabet)
 
 
 
-# for i in blocks_pt_hex:
-#     print(bytes.fromhex(i).decode('utf-8'))
-# for i in blocks_pt_my_hex:
-#     print(bytes.fromhex(i).decode('utf-8'))
+def encode(plaintext, key):
+    alphabet = list(key)
+    alphabet.sort()
+    encdic = dict(zip(alphabet, key))
+    return ''.join(map(lambda c: encdic[c], plaintext))
 
-cipher = Cipher(algorithms.AES128(key), modes.CBC(iv))
+# def decode(ciphertext, key):
+#     keylen = len(key)
+#     plaintext = [decodeChar(ciphertext[n], key[n%keylen]) for n in range(len(ciphertext))]
+#     return ''.join(plaintext)
 
-encryptor = cipher.encryptor()
-ct = encryptor.update(pt) + encryptor.finalize()
+charCnt = {}
 
-ct_hex = ct.hex()
-blocks_ct_hex = [bytes.fromhex(ct_hex[i:i+32]) for i in range(0,len(ct_hex),32)]
+toDecode = ('KMFXLZMKDZVOXLZPXKYIPBKRRZFSVYDSVVFKMFXLZXLIYFAKYXVOXLZSKXZYPQZBKDZSVYDSVVFKMFDK'
+            'MCDZMFIZFVOXLZSKXZYPQZBKNPZXLZCSZYZDKFZQIXXZY')
 
-decryptor = cipher.decryptor()
-pt_check = decryptor.update(ct) + decryptor.finalize()
+for char in toDecode:
+    if char in charCnt:
+        charCnt[char] += 1
+    else:
+        charCnt[char] = 1
 
-padder = padding.PKCS7(128).unpadder()
-pt_check = padder.update(pt_check) + padder.finalize()
+wzor = {'E': 196, 'A': 140, 'T': 139, 'D': 123, 'O': 122, 'R': 113, 'H': 106, 'M': 89, 'W': 87, 'N': 74, 'S': 62, 'I': 58, 'F': 58, 'C': 39, 'B': 37, 'G': 37, 'Y': 36, 'P': 30, 'U': 30, 'L': 21, 'V': 14, 'K': 8, 'Z': 3, 'Q': 2, 'J': 2, 'X': 1}
+x = sorted(charCnt.items(), key = lambda x: x[1], reverse=True)
 
-print("TEST: ", pt_check.decode('utf-8'))
+names = []
+values = []
 
-# print("CT: ",blocks_ct_hex)
-# print("MY_PT: ",blocks_pt_my_hex)
-# print("PT: ",blocks_pt_hex)
+names_wzor = []
+values_wzor = []
 
-# print("BEFORE:",blocks_ct_hex)
+for item in x:
+    names.append(item[0])
+    values.append(item[1])
+
+y = sorted(wzor.items(), key = lambda x: x[1], reverse=True)
+
+print(dict(y))
+
+for item in y:
+    names_wzor.append(item[0])
+    values_wzor.append(item[1])
+
+key = {}
 
 
-for i in range(0,len(blocks_ct_hex),2):
-    # print(i)
-    blocks_ct_hex[i] = bytes(a ^ b ^ c for a, b, c in zip(blocks_ct_hex[i], blocks_pt_my_hex[int(i/2)], blocks_pt_hex[i+1]))
+for i in range(len(x)):
+    if names[i] not in key:
+        key[names[i]] = names_wzor[i]
+    
+print(key)
 
-# print("PRZEROBKA:", blocks_ct_hex)
+decoded = ""
+for char in toDecode:
+    decoded += key[char]
 
-new_ct = b''.join(blocks_ct_hex)
+WOW = "AND THE NAME OF THE STAR IS CAGGED WORMWOOD AND THE THIRD PART OF THE WATERS BECAME WORMWOOD AND MANY MEN DIED OF THE WATERS BECALSE THEY WERE MADE BITTER"
+print(decoded)
 
-decryptor = cipher.decryptor()
-new_pt = decryptor.update(new_ct) + decryptor.finalize()
 
-padder = padding.PKCS7(128).unpadder()
-new_pt = padder.update(new_pt) + padder.finalize()
-print("KONIEC: ",new_pt)
+decoded_with_spaces = ""
+j = 0
+for i in range(len(WOW)):
+    if WOW[i] == ' ':
+        decoded_with_spaces += ' '
+        continue
+    decoded_with_spaces += decoded[j]
+    j += 1
+
+print(decoded_with_spaces)
+
+# plt.subplot(131)
+# plt.bar(names, values)
+# plt.subplot(132)
+# plt.bar(names_wzor, values_wzor)
+# plt.show()
+
+
