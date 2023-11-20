@@ -11,6 +11,14 @@
 #define LED_DDR DDRD    //dioda ddr
 #define LED_PORT PORTD  //dioda port 
 
+
+#define MAX_RES 59000
+#define INF_RES 100000
+
+#define BASE_LED_FREQ 10000
+
+#define min(x, y) (x < y ? x : y)
+
 // inicjalizacja UART
 void uart_init()
 {
@@ -51,7 +59,7 @@ void adc_init(){
 
     DIDR0 = _BV(ADC0D);
 
-    ADCSRA = _BV(ADPS1) ;
+    ADCSRA = _BV(ADPS0) | _BV(ADPS1) | _BV(ADPS2)   ;
     ADCSRA |= _BV(ADEN);
 }
 
@@ -64,51 +72,54 @@ void my_delay_us(uint16_t value){
     }
 }
 
-
-
-uint16_t my_log(uint16_t x)
+void timer_init()
 {
-    if (x == 0) return 1;
-    return 16 - __builtin_clz(x) - 1;
+  ICR1 = 35624;
+  TCCR1A = _BV(COM1A1) | _BV(WGM11);
+  TCCR1B = _BV(WGM12) | _BV(WGM13) | _BV(CS00); // | _BV(CS10) | _BV(CS12);
+  DDRB |= _BV(PB1);
+}
+
+void update_led(uint32_t resValue) {
+
+    resValue = min(resValue, MAX_RES);
+
+    uint32_t brightness = (resValue * BASE_LED_FREQ) / INF_RES;
+    OCR1A =  brightness;
+
+    printf("%d\r\n", OCR1A);
 }
 
 
-uint16_t my_exp(uint16_t x)
-{
-    return (1 << x);
-}
+
 int main(){
     // UCSR0B |= _BV(RXEN0) | _BV(TXEN0);
 
-    LED_DDR |= _BV(LED);
     uart_init();
     fdev_setup_stream(&uart_file,uart_transmit,uart_receive,_FDEV_SETUP_RW);
     stdin = stdout = stderr = &uart_file;
     adc_init();
-    while(1){
+    timer_init();
+
+
+    float R = 10000;
+
+    float Vcc = 5;
+
+    while(1)
+    {
       
         LED_PORT &= ~_BV(LED);
 
         ADCSRA |= _BV(ADSC);
         while(!(ADCSRA & _BV(ADIF)));
-        ADCSRA |= _BV(ADIF);DCSRA |= _BV(ADSC);
-        while(!(ADCSRA & _BV(ADIF)));
         ADCSRA |= _BV(ADIF);
 
+        float vin = (ADC * Vcc) / 1024; 
 
-        // printf("Odczytano: %"PRIu16" %"PRIu16" %"PRIu16"\r\n",ADC, my_log(ADC), my_exp(ADC/100)*1000);
-
-        LED_PORT |= _BV(LED);
-
-        uint16_t exp_adc = my_exp(ADC/100);
-
-        my_delay_us(exp_adc * 100);
-
-        LED_PORT &= ~_BV(LED);
-
-        my_delay_us((1024-exp_adc) * 10);
-    
-    //   printf("Odczytano: %"PRIu16"\r\n",v);
-    //   migotanie(v);
+        float val = R * ((Vcc - vin)/vin); 
+        
+        update_led(val);
+        // printf("zmierzone światło: %f \r\n ", val);        
     }
 }
