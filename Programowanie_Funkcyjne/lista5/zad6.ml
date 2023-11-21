@@ -13,3 +13,7 @@ let force x =
     let res = f () in
     x := Done res; res
 
+let fix f =
+  let x = ref Working in
+    x := Lazy (fun () -> f x);
+    !x
