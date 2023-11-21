@@ -28,7 +28,7 @@ char *get_line() {
   line = readline("\033[0;31mprompt> \033[0m");
 
   if (line && *line) {
-    printf("akuku\n");
+    // printf("akuku\n");
     add_history(line);
     len = strlen(line);
     line = realloc(line, len + 3);
@@ -44,7 +44,7 @@ int create_socket(char* port, char* ip) {
     struct sockaddr_in addr; /* cast in bind on generic struct sockaddr */
     addr.sin_family = AF_INET;
     addr.sin_port = atoi(port);
-    addr.sin_addr.s_addr = inet_addr(ip); /* 0.0.0.0 */
+    addr.sin_addr.s_addr = inet_addr(ip);
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
         errx(EXIT_FAILURE, "Unable to create socket");
     return sock;
@@ -72,7 +72,7 @@ void configure_context(SSL_CTX *ctx, char* cert_name) {
         exit(EXIT_FAILURE);
     }
 
-    if (SSL_CTX_load_verify_locations(ctx, "ca.pem", ".") <1) {
+    if (SSL_CTX_load_verify_locations(ctx, cert_name, ".") <1) {
         ERR_print_errors_fp(stderr);
         exit(EXIT_FAILURE);
     }
@@ -101,12 +101,12 @@ int main(int argc, char *argv[]) {
     ca_name = argv[3];
     printf("%s %s %s\n", host, port, ca_name);
 
-    int sock; /* listening and connected socket */
+    int sock;
     SSL_CTX *ctx;
     ctx = create_context();
     configure_context(ctx,ca_name);
 
-    struct sockaddr_in addr; /* cast in bind on generic struct sockaddr */
+    struct sockaddr_in addr;
     memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
     addr.sin_port = ntohs(atoi(port));

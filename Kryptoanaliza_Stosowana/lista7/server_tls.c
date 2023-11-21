@@ -66,7 +66,7 @@ void reverse_buffer(char* buffer, ssize_t size)
     ssize_t l = 0, r = size - 3;
     buffer[size-1] = '\n';
     buffer[size-2] = '\r';
-    while(l <= r)
+    while(l < r)
     {
         char tmp = buffer[l];
 
@@ -135,14 +135,17 @@ int main(int argc, char *argv[]) {
                 ERR_print_errors_fp(stderr); /* if screwed up, diagnose the failure */
             } else
             {
-                // if (SSL_get_verify_result(ssl) != X509_V_OK) {
-                //     printf("SSL Client Authentication error\n");
-                //     SSL_free(ssl);
-                //     close(client);
-                //     SSL_CTX_free(ctx);
-                //     exit(0);
-                // }
-                handle_client(client, ssl);
+                if (SSL_get_verify_result(ssl) != X509_V_OK) {
+                    printf("SSL Client Authentication error\n");
+                    SSL_free(ssl);
+                    close(client);
+                    SSL_CTX_free(ctx);
+                    exit(0);
+                } else 
+                {
+                    handle_client(client, ssl);
+                }
+                
             }
 
             SSL_shutdown(ssl); /* close SSL connection */
