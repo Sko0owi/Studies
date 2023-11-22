@@ -33,7 +33,7 @@ let rec of_list (xs : 'a list) =
   | x :: xs -> 
     let rec first = lazy begin let wyn = gen first xs first in
       {next = wyn; elem = x; prev = !last}
-    end in let res = (Lazy.force first) in lazy res
+    end in first
 
 
 let x = (of_list [1 ; 2 ; 3;]);;
