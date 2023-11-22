@@ -70,10 +70,10 @@ void adc_init(){
     DIDR0 = _BV(ADC0D);
 
     ADCSRA = _BV(ADPS0) | _BV(ADPS1) | _BV(ADPS2)   ;
-    ADCSRA |= _BV(ADEN);
     ADCSRA |= _BV(ADIE) | _BV(ADATE);
 
-    ADCSRB = _BV(ADTS0);
+    ADCSRB |= _BV(ADTS1);
+    ADCSRA |= _BV(ADEN);
 }
 
 void timer_init()
@@ -84,11 +84,11 @@ void timer_init()
     TIMSK0 |= _BV(OCIE0A);
     OCR0A = 124;
 }
-// void interrupt_init()
-// {
-//     EICRA |= _BV(ISC01);
-//     EIMSK |= _BV(INT0);
-// }
+void interrupt_init()
+{
+    EICRA |= _BV(ISC01);
+    EIMSK |= _BV(INT0);
+}
 
 ISR(TIMER0_COMPA_vect) {
 
@@ -98,12 +98,12 @@ ISR(TIMER0_COMPA_vect) {
         printf("Last Measurement: %f\r\n", last_measurement);
     }
 }
-// ISR(INT1_vect) {
+ISR(INT0_vect) {
     
-//     ADCSRA |= _BV(ADSC);
-//     printf("Pressed\r\n");
+    // ADCSRA |= _BV(ADSC);
+    // printf("Pressed\r\n");
 
-// }
+}
 ISR(ADC_vect) 
 {
     float R = 10000;
@@ -127,13 +127,13 @@ int main(){
 
     adc_init();
     timer_init();
-    // interrupt_init();
+    interrupt_init();
     sei();
 
 
     set_sleep_mode(SLEEP_MODE_IDLE);
     while(1) 
     {
-        // sleep_mode();
+        //sleep_mode();
     }
 }
