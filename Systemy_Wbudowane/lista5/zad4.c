@@ -49,26 +49,26 @@ FILE uart_file;
 
 void clock_init()
 {
-    TCCR1A |=  _BV(WGM12) | _BV(WGM13);
-    TCCR1B |= _BV(CS12) | _BV(CS10);
+    TCCR1A |= _BV(WGM12) | _BV(WGM13);
+    TCCR1B |= _BV(CS11);
     TIMSK1 |= _BV(ICIE1);
 }
 
 
-volatile int32_t prev = 0, val = 0, current = 0;
+volatile uint16_t prev = 0, val = 0, current = 0;
 
-volatile uint8_t licznik = 0;
+volatile uint8_t changeEdge = 0;
 ISR(TIMER1_CAPT_vect) {
 
+    changeEdge ^= 1;
     prev = current;
     current = ICR1;
 
-    if(licznik++ == 1)
+    if(changeEdge)
     {
-        val = (F_CPU >> 10) / (current - prev);
-        printf("KURRENT_VAL: %"PRId32"\r\n", val);
-        licznik = 0;
-        
+        val = (current - prev);
+        val = (F_CPU >> 3) / val;
+        printf("KURRENT_VAL: %"PRIu16"\r\n", val);        
     }
             
 }

@@ -15,7 +15,6 @@
 #define LED_DDR DDRD    //dioda ddr
 #define LED_PORT PORTD  //dioda port 
 
-int ADC_INTERRUPT = 1;
 // inicjalizacja UART
 void uart_init()
 {
@@ -48,52 +47,41 @@ int uart_receive(FILE *stream)
 
 FILE uart_file;
 
-
-//inicjalizowanie ADC
-void adc_init(){
-    ADMUX = _BV(REFS0);
-    ADMUX |= 0b1110;
-    //DIDR0 = _BV(ADC0D);
-    ADCSRA = _BV(ADPS0) | _BV(ADPS1) | _BV(ADPS2);
-    ADCSRA |= _BV(ADEN) | _BV(ADATE);
-
-    if (ADC_INTERRUPT) ADCSRA |= _BV(ADIE); // interupt activation
-}
-
-static void ADC_print()
+void clock_init()
 {
-    ADCSRA |= _BV(ADIF);
-    uint32_t v = 112640 / ADC ; // 1.1 * 1024 = 1126.4
-    printf("Odczytano: %"PRIu32"\r\n",v);
+    TCCR1A |= _BV(WGM12) | _BV(WGM13);
+    TCCR1B |= _BV(CS12) | _BV(CS10);
+    TIMSK1 |= _BV(ICIE1);
 }
 
-ISR(ADC_vect) 
-{
-    // printf("Stary wstal\n\r");
-    ADC_print();
-}
 
+volatile float prev = 0, val = 0, current = 0;
+
+volatile uint8_t licznik = 0;
+ISR(TIMER1_CAPT_vect) {
+
+    current = ICR1;    
+    val = (F_CPU >> 11) / (current + 1.0);
+    printf("KURRENT_VAL: %f\r\n", val);
+
+        
+    
+            
+}
 
 int main(){
     UCSR0B |= _BV(RXEN0) | _BV(TXEN0);
     uart_init();
     fdev_setup_stream(&uart_file,uart_transmit,uart_receive,_FDEV_SETUP_RW);
     stdin = stdout = stderr = &uart_file;
-    adc_init();
+
+    clock_init();
     sei();
 
     set_sleep_mode(SLEEP_MODE_IDLE);
 
     while(1)
     {
-        if(ADC_INTERRUPT)
-        {
-            sleep_mode();
-        } else 
-        {
-            ADCSRA |= _BV(ADSC);
-            while(!(ADCSRA & _BV(ADIF)));
-            ADC_print();
-        }
+        sleep_mode();
     }
 }

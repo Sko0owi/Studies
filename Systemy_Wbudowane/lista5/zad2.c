@@ -125,7 +125,7 @@ int main(){
     BUTTON_DDR &= ~_BV(BUTTON);
     BUTTON_PORT |= _BV(BUTTON);
 
-    adc_init();
+    adc_init(); 
     timer_init();
     interrupt_init();
     sei();
