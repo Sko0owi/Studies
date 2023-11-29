@@ -21,7 +21,7 @@ void spi_init()
     DDRB |= _BV(DDB3) | _BV(DDB5) | _BV(CS);
     CS_PORT |= _BV(CS);
     // włącz SPI w trybie master z zegarem 125 kHz
-    SPCR = _BV(SPE) | _BV(MSTR) | _BV(SPR1) | _BV(SPR0);
+    SPCR = _BV(SPE) | _BV(MSTR) | _BV(SPR1) | _BV(SPR0) | _BV(SPIE);
 }
 
 void spi_transfer(uint8_t data)
@@ -33,18 +33,26 @@ void spi_transfer(uint8_t data)
     uint8_t first_byte = 0x30;
     first_byte |= (data & 0xF0) >> 4;
     SPDR = first_byte;
-    while (!(SPSR & _BV(SPIF)));
-    SPSR |= _BV(SPIF);
+    
+    sleep_mode();
+
 
     uint8_t second_byte = (data << 4) & 0xF0;
     SPDR = second_byte;
-    while (!(SPSR & _BV(SPIF)));
-    SPSR |= _BV(SPIF);
+    
+    sleep_mode();
+
     // uint8_t second_byte = (data >> 4);
 
     CS_PORT |= _BV(CS);
 
 }
+
+ISR(SPI_STC_vect)
+{
+    // nothing
+}
+
 
 static const uint8_t dzwiek_raw[] PROGMEM = {
   0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80,
@@ -2194,6 +2202,8 @@ unsigned int dzwiek_raw_len = 25640;
 int main()
 {
     spi_init();
+    sei();
+    set_sleep_mode(SLEEP_MODE_IDLE);
 
     while(1)
     {

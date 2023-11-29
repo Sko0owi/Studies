@@ -50,7 +50,7 @@ void timer_init() {
 volatile int8_t time = 0, ind = 0;
 
 ISR(TIMER2_COMPA_vect) {
-  if (++time >= 100) {
+  if (++time >= 50) {
     time = 0;
     if(++ind == 10) ind = 0;
   }
@@ -62,7 +62,12 @@ void spi_init()
     SPI_DDR |= _BV(SPI_MOSI) | _BV(SPI_SCK) | _BV(SPI_LA) | _BV(SPI_OE);
     SPI_PORT &= ~_BV(SPI_OE);
 
-    SPCR = _BV(SPE) | _BV(MSTR) | _BV(SPR1);
+    SPCR = _BV(SPE) | _BV(MSTR) | _BV(SPR1) | _BV(SPIE);
+}
+
+ISR(SPI_STC_vect)
+{
+    // nothing
 }
 
 void load_digit(uint8_t data)
@@ -70,8 +75,10 @@ void load_digit(uint8_t data)
     SPI_PORT |= _BV(SPI_LA);
 
     SPDR = data;
-    while (!(SPSR & _BV(SPIF)));
-    SPSR |= _BV(SPIF);
+    sleep_mode();
+
+    // while (!(SPSR & _BV(SPIF)));
+    // SPSR |= _BV(SPIF);
 
     SPI_PORT &= ~_BV(SPI_LA);
 }

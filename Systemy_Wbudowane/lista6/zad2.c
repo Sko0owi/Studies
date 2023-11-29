@@ -38,7 +38,7 @@ void uart_init()
 // transmisja jednego znaku
 int uart_transmit(char data, FILE *stream)
 {      
-    while(curr_sending == (last_sending + 1)%BUFFER_SIZE);
+    while(curr_sending == (last_sending + 1)%BUFFER_SIZE) sleep_mode();
     
     sending[last_sending++] = data;
     last_sending %= BUFFER_SIZE;
@@ -50,7 +50,7 @@ int uart_transmit(char data, FILE *stream)
 // odczyt jednego znaku
 int uart_receive(FILE *stream)
 {
-    while(curr_receiving == last_receiving);
+    while(curr_receiving == last_receiving) sleep_mode();
 
     char return_val = receiving[curr_receiving++];
     curr_receiving %= BUFFER_SIZE;
@@ -85,6 +85,8 @@ int main()
     // zainicjalizuj UART
     uart_init();
     sei();
+    set_sleep_mode(SLEEP_MODE_IDLE);
+
     
     // skonfiguruj strumienie wejścia/wyjścia
     fdev_setup_stream(&uart_file, uart_transmit, uart_receive, _FDEV_SETUP_RW);
