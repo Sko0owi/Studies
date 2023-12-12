@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        "random": "c",
+        "chrono": "c",
+        "__locale": "c",
+        "memory": "c",
+        "utility": "c",
+        "cstddef": "c"
+    }
+}
