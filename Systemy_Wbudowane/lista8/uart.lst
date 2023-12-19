@@ -1,0 +1,434 @@
+   1               		.file	"uart.c"
+   2               	__SP_H__ = 0x3e
+   3               	__SP_L__ = 0x3d
+   4               	__SREG__ = 0x3f
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   9               		.text
+  10               	.Ltext0:
+ 187               	.global	uart_init
+ 189               	uart_init:
+ 190               		.stabd	46,0,0
+   1:uart.c        **** #include <stdio.h>
+   2:uart.c        **** #include "FreeRTOS.h"
+   3:uart.c        **** #include "uart.h"
+   4:uart.c        **** #include "queue.h"
+   5:uart.c        **** #include "task.h"
+   6:uart.c        **** #include <avr/interrupt.h>
+   7:uart.c        **** #include <avr/io.h>
+   8:uart.c        **** #ifndef F_CPU
+   9:uart.c        **** #define F_CPU 16000000UL
+  10:uart.c        **** #endif
+  11:uart.c        **** #ifndef BAUD
+  12:uart.c        **** #define BAUD 9600
+  13:uart.c        **** #endif
+  14:uart.c        **** #include <util/setbaud.h>
+  15:uart.c        **** 
+  16:uart.c        **** #define QUEUE_SIZE 128
+  17:uart.c        **** xQueueHandle recvQueue, sendQueue;
+  18:uart.c        **** 
+  19:uart.c        **** void uart_init() {
+ 192               	.LM0:
+ 193               	.LFBB1:
+ 194               	/* prologue: function */
+ 195               	/* frame size = 0 */
+ 196               	/* stack size = 0 */
+ 197               	.L__stack_usage = 0
+  20:uart.c        ****   UBRR0H = UBRRH_VALUE;
+ 199               	.LM1:
+ 200 0000 1092 C500 		sts 197,__zero_reg__
+  21:uart.c        ****   UBRR0L = UBRRL_VALUE;
+ 202               	.LM2:
+ 203 0004 87E6      		ldi r24,lo8(103)
+ 204 0006 8093 C400 		sts 196,r24
+  22:uart.c        **** #if USE_2X
+  23:uart.c        ****   UCSR0A |= _BV(U2X0);
+  24:uart.c        **** #else
+  25:uart.c        ****   UCSR0A &= ~(_BV(U2X0));
+ 206               	.LM3:
+ 207 000a E0EC      		ldi r30,lo8(-64)
+ 208 000c F0E0      		ldi r31,0
+ 209 000e 8081      		ld r24,Z
+ 210 0010 8D7F      		andi r24,lo8(-3)
+ 211 0012 8083      		st Z,r24
+  26:uart.c        **** #endif
+  27:uart.c        ****   UCSR0C = _BV(UCSZ01) | _BV(UCSZ00); /* 8-bit data */
+ 213               	.LM4:
+ 214 0014 86E0      		ldi r24,lo8(6)
+ 215 0016 8093 C200 		sts 194,r24
+  28:uart.c        ****   UCSR0B = _BV(RXEN0) | _BV(TXEN0);   /* Enable RX and TX */
+ 217               	.LM5:
+ 218 001a 88E1      		ldi r24,lo8(24)
+ 219 001c 8093 C100 		sts 193,r24
+  29:uart.c        ****   recvQueue = xQueueCreate(QUEUE_SIZE, sizeof(char));
+ 221               	.LM6:
+ 222 0020 40E0      		ldi r20,0
+ 223 0022 61E0      		ldi r22,lo8(1)
+ 224 0024 80E8      		ldi r24,lo8(-128)
+ 225 0026 0E94 0000 		call xQueueGenericCreate
+ 226 002a 9093 0000 		sts recvQueue+1,r25
+ 227 002e 8093 0000 		sts recvQueue,r24
+  30:uart.c        ****   sendQueue = xQueueCreate(QUEUE_SIZE, sizeof(char));
+ 229               	.LM7:
+ 230 0032 40E0      		ldi r20,0
+ 231 0034 61E0      		ldi r22,lo8(1)
+ 232 0036 80E8      		ldi r24,lo8(-128)
+ 233 0038 0E94 0000 		call xQueueGenericCreate
+ 234 003c 9093 0000 		sts sendQueue+1,r25
+ 235 0040 8093 0000 		sts sendQueue,r24
+ 236 0044 0895      		ret
+ 238               	.Lscope1:
+ 240               		.stabd	78,0,0
+ 244               	.global	uart_transmit
+ 246               	uart_transmit:
+ 247               		.stabd	46,0,0
+  31:uart.c        **** }
+  32:uart.c        **** 
+  33:uart.c        **** int uart_transmit(char c, FILE *stream) {
+ 249               	.LM8:
+ 250               	.LFBB2:
+ 251 0046 CF93      		push r28
+ 252 0048 DF93      		push r29
+ 253 004a 1F92      		push __zero_reg__
+ 254 004c CDB7      		in r28,__SP_L__
+ 255 004e DEB7      		in r29,__SP_H__
+ 256               	/* prologue: function */
+ 257               	/* frame size = 1 */
+ 258               	/* stack size = 3 */
+ 259               	.L__stack_usage = 3
+ 260 0050 8983      		std Y+1,r24
+  34:uart.c        ****   if (!uxQueueSpacesAvailable(sendQueue)) {
+ 262               	.LM9:
+ 263 0052 8091 0000 		lds r24,sendQueue
+ 264 0056 9091 0000 		lds r25,sendQueue+1
+ 265 005a 0E94 0000 		call uxQueueSpacesAvailable
+ 266 005e 8111      		cpse r24,__zero_reg__
+ 267 0060 00C0      		rjmp .L3
+  35:uart.c        ****     UCSR0B |= _BV(UDRIE0);
+ 269               	.LM10:
+ 270 0062 8091 C100 		lds r24,193
+ 271 0066 8062      		ori r24,lo8(32)
+ 272 0068 8093 C100 		sts 193,r24
+  36:uart.c        ****     xQueueSend(sendQueue, &c, portMAX_DELAY);
+ 274               	.LM11:
+ 275 006c 20E0      		ldi r18,0
+ 276 006e 4FEF      		ldi r20,lo8(-1)
+ 277 0070 5FEF      		ldi r21,lo8(-1)
+ 278 0072 00C0      		rjmp .L6
+ 279               	.L3:
+  37:uart.c        ****   } else
+  38:uart.c        ****     xQueueSend(sendQueue, &c, 0);
+ 281               	.LM12:
+ 282 0074 20E0      		ldi r18,0
+ 283 0076 40E0      		ldi r20,0
+ 284 0078 50E0      		ldi r21,0
+ 285               	.L6:
+ 286 007a BE01      		movw r22,r28
+ 287 007c 6F5F      		subi r22,-1
+ 288 007e 7F4F      		sbci r23,-1
+ 289 0080 8091 0000 		lds r24,sendQueue
+ 290 0084 9091 0000 		lds r25,sendQueue+1
+ 291 0088 0E94 0000 		call xQueueGenericSend
+  39:uart.c        **** 
+  40:uart.c        ****   if (c == '\n')
+ 293               	.LM13:
+ 294 008c 8981      		ldd r24,Y+1
+ 295 008e 8A30      		cpi r24,lo8(10)
+ 296 0090 01F4      		brne .L5
+  41:uart.c        ****     UCSR0B |= _BV(UDRIE0);
+ 298               	.LM14:
+ 299 0092 8091 C100 		lds r24,193
+ 300 0096 8062      		ori r24,lo8(32)
+ 301 0098 8093 C100 		sts 193,r24
+ 302               	.L5:
+  42:uart.c        ****   return 0;
+  43:uart.c        **** }
+ 304               	.LM15:
+ 305 009c 80E0      		ldi r24,0
+ 306 009e 90E0      		ldi r25,0
+ 307               	/* epilogue start */
+ 308 00a0 0F90      		pop __tmp_reg__
+ 309 00a2 DF91      		pop r29
+ 310 00a4 CF91      		pop r28
+ 311 00a6 0895      		ret
+ 313               	.Lscope2:
+ 315               		.stabd	78,0,0
+ 318               	.global	uart_receive
+ 320               	uart_receive:
+ 321               		.stabd	46,0,0
+  44:uart.c        **** 
+  45:uart.c        **** int uart_receive(FILE *stream) {
+ 323               	.LM16:
+ 324               	.LFBB3:
+ 325 00a8 CF93      		push r28
+ 326 00aa DF93      		push r29
+ 327 00ac 1F92      		push __zero_reg__
+ 328 00ae CDB7      		in r28,__SP_L__
+ 329 00b0 DEB7      		in r29,__SP_H__
+ 330               	/* prologue: function */
+ 331               	/* frame size = 1 */
+ 332               	/* stack size = 3 */
+ 333               	.L__stack_usage = 3
+  46:uart.c        ****   char c;
+  47:uart.c        ****   if (!uxQueueMessagesWaiting(recvQueue)) {
+ 335               	.LM17:
+ 336 00b2 8091 0000 		lds r24,recvQueue
+ 337 00b6 9091 0000 		lds r25,recvQueue+1
+ 338 00ba 0E94 0000 		call uxQueueMessagesWaiting
+ 339 00be 8111      		cpse r24,__zero_reg__
+ 340 00c0 00C0      		rjmp .L9
+  48:uart.c        ****     UCSR0B |= _BV(RXCIE0);
+ 342               	.LM18:
+ 343 00c2 8091 C100 		lds r24,193
+ 344 00c6 8068      		ori r24,lo8(-128)
+ 345 00c8 8093 C100 		sts 193,r24
+  49:uart.c        ****     xQueueReceive(recvQueue, &c, portMAX_DELAY);
+ 347               	.LM19:
+ 348 00cc 4FEF      		ldi r20,lo8(-1)
+ 349 00ce 5FEF      		ldi r21,lo8(-1)
+ 350 00d0 00C0      		rjmp .L11
+ 351               	.L9:
+  50:uart.c        ****   } else
+  51:uart.c        ****     xQueueReceive(recvQueue, &c, 0);
+ 353               	.LM20:
+ 354 00d2 40E0      		ldi r20,0
+ 355 00d4 50E0      		ldi r21,0
+ 356               	.L11:
+ 357 00d6 BE01      		movw r22,r28
+ 358 00d8 6F5F      		subi r22,-1
+ 359 00da 7F4F      		sbci r23,-1
+ 360 00dc 8091 0000 		lds r24,recvQueue
+ 361 00e0 9091 0000 		lds r25,recvQueue+1
+ 362 00e4 0E94 0000 		call xQueueReceive
+  52:uart.c        **** 
+  53:uart.c        ****   return c;
+ 364               	.LM21:
+ 365 00e8 8981      		ldd r24,Y+1
+  54:uart.c        **** }
+ 367               	.LM22:
+ 368 00ea 082E      		mov __tmp_reg__,r24
+ 369 00ec 000C      		lsl r0
+ 370 00ee 990B      		sbc r25,r25
+ 371               	/* epilogue start */
+ 372 00f0 0F90      		pop __tmp_reg__
+ 373 00f2 DF91      		pop r29
+ 374 00f4 CF91      		pop r28
+ 375 00f6 0895      		ret
+ 380               	.Lscope3:
+ 382               		.stabd	78,0,0
+ 384               	.global	__vector_18
+ 386               	__vector_18:
+ 387               		.stabd	46,0,0
+  55:uart.c        **** 
+  56:uart.c        **** ISR(USART_RX_vect) {
+ 389               	.LM23:
+ 390               	.LFBB4:
+ 391 00f8 1F92      		push r1
+ 392 00fa 0F92      		push r0
+ 393 00fc 0FB6      		in r0,__SREG__
+ 394 00fe 0F92      		push r0
+ 395 0100 1124      		clr __zero_reg__
+ 396 0102 2F93      		push r18
+ 397 0104 3F93      		push r19
+ 398 0106 4F93      		push r20
+ 399 0108 5F93      		push r21
+ 400 010a 6F93      		push r22
+ 401 010c 7F93      		push r23
+ 402 010e 8F93      		push r24
+ 403 0110 9F93      		push r25
+ 404 0112 AF93      		push r26
+ 405 0114 BF93      		push r27
+ 406 0116 EF93      		push r30
+ 407 0118 FF93      		push r31
+ 408 011a CF93      		push r28
+ 409 011c DF93      		push r29
+ 410 011e 1F92      		push __zero_reg__
+ 411 0120 CDB7      		in r28,__SP_L__
+ 412 0122 DEB7      		in r29,__SP_H__
+ 413               	/* prologue: Signal */
+ 414               	/* frame size = 1 */
+ 415               	/* stack size = 18 */
+ 416               	.L__stack_usage = 18
+  57:uart.c        ****   if (uxQueueMessagesWaitingFromISR(recvQueue) == QUEUE_SIZE)
+ 418               	.LM24:
+ 419 0124 8091 0000 		lds r24,recvQueue
+ 420 0128 9091 0000 		lds r25,recvQueue+1
+ 421 012c 0E94 0000 		call uxQueueMessagesWaitingFromISR
+ 422 0130 8038      		cpi r24,lo8(-128)
+ 423 0132 01F4      		brne .L13
+  58:uart.c        ****     UCSR0B &= ~_BV(RXCIE0);
+ 425               	.LM25:
+ 426 0134 8091 C100 		lds r24,193
+ 427 0138 8F77      		andi r24,lo8(127)
+ 428 013a 8093 C100 		sts 193,r24
+ 429 013e 00C0      		rjmp .L12
+ 430               	.L13:
+ 431               	.LBB2:
+  59:uart.c        ****   else {
+  60:uart.c        ****     char c = UDR0;
+ 433               	.LM26:
+ 434 0140 8091 C600 		lds r24,198
+ 435 0144 8983      		std Y+1,r24
+  61:uart.c        ****     xQueueSendToBackFromISR(recvQueue, &c, NULL);
+ 437               	.LM27:
+ 438 0146 20E0      		ldi r18,0
+ 439 0148 40E0      		ldi r20,0
+ 440 014a 50E0      		ldi r21,0
+ 441 014c BE01      		movw r22,r28
+ 442 014e 6F5F      		subi r22,-1
+ 443 0150 7F4F      		sbci r23,-1
+ 444 0152 8091 0000 		lds r24,recvQueue
+ 445 0156 9091 0000 		lds r25,recvQueue+1
+ 446 015a 0E94 0000 		call xQueueGenericSendFromISR
+ 447               	.L12:
+ 448               	/* epilogue start */
+ 449               	.LBE2:
+  62:uart.c        ****   }
+  63:uart.c        **** }
+ 451               	.LM28:
+ 452 015e 0F90      		pop __tmp_reg__
+ 453 0160 DF91      		pop r29
+ 454 0162 CF91      		pop r28
+ 455 0164 FF91      		pop r31
+ 456 0166 EF91      		pop r30
+ 457 0168 BF91      		pop r27
+ 458 016a AF91      		pop r26
+ 459 016c 9F91      		pop r25
+ 460 016e 8F91      		pop r24
+ 461 0170 7F91      		pop r23
+ 462 0172 6F91      		pop r22
+ 463 0174 5F91      		pop r21
+ 464 0176 4F91      		pop r20
+ 465 0178 3F91      		pop r19
+ 466 017a 2F91      		pop r18
+ 467 017c 0F90      		pop r0
+ 468 017e 0FBE      		out __SREG__,r0
+ 469 0180 0F90      		pop r0
+ 470 0182 1F90      		pop r1
+ 471 0184 1895      		reti
+ 476               	.Lscope4:
+ 478               		.stabd	78,0,0
+ 480               	.global	__vector_19
+ 482               	__vector_19:
+ 483               		.stabd	46,0,0
+  64:uart.c        **** 
+  65:uart.c        **** ISR(USART_UDRE_vect) {
+ 485               	.LM29:
+ 486               	.LFBB5:
+ 487 0186 1F92      		push r1
+ 488 0188 0F92      		push r0
+ 489 018a 0FB6      		in r0,__SREG__
+ 490 018c 0F92      		push r0
+ 491 018e 1124      		clr __zero_reg__
+ 492 0190 2F93      		push r18
+ 493 0192 3F93      		push r19
+ 494 0194 4F93      		push r20
+ 495 0196 5F93      		push r21
+ 496 0198 6F93      		push r22
+ 497 019a 7F93      		push r23
+ 498 019c 8F93      		push r24
+ 499 019e 9F93      		push r25
+ 500 01a0 AF93      		push r26
+ 501 01a2 BF93      		push r27
+ 502 01a4 EF93      		push r30
+ 503 01a6 FF93      		push r31
+ 504 01a8 CF93      		push r28
+ 505 01aa DF93      		push r29
+ 506 01ac 1F92      		push __zero_reg__
+ 507 01ae CDB7      		in r28,__SP_L__
+ 508 01b0 DEB7      		in r29,__SP_H__
+ 509               	/* prologue: Signal */
+ 510               	/* frame size = 1 */
+ 511               	/* stack size = 18 */
+ 512               	.L__stack_usage = 18
+  66:uart.c        ****   if (!uxQueueMessagesWaitingFromISR(sendQueue))
+ 514               	.LM30:
+ 515 01b2 8091 0000 		lds r24,sendQueue
+ 516 01b6 9091 0000 		lds r25,sendQueue+1
+ 517 01ba 0E94 0000 		call uxQueueMessagesWaitingFromISR
+ 518 01be 8111      		cpse r24,__zero_reg__
+ 519 01c0 00C0      		rjmp .L16
+  67:uart.c        ****     UCSR0B &= ~_BV(UDRIE0);
+ 521               	.LM31:
+ 522 01c2 8091 C100 		lds r24,193
+ 523 01c6 8F7D      		andi r24,lo8(-33)
+ 524 01c8 8093 C100 		sts 193,r24
+ 525 01cc 00C0      		rjmp .L15
+ 526               	.L16:
+ 527               	.LBB3:
+  68:uart.c        ****   else {
+  69:uart.c        ****     char c;
+  70:uart.c        ****     if (xQueueReceiveFromISR(sendQueue, &c, NULL) == pdTRUE)
+ 529               	.LM32:
+ 530 01ce 40E0      		ldi r20,0
+ 531 01d0 50E0      		ldi r21,0
+ 532 01d2 BE01      		movw r22,r28
+ 533 01d4 6F5F      		subi r22,-1
+ 534 01d6 7F4F      		sbci r23,-1
+ 535 01d8 8091 0000 		lds r24,sendQueue
+ 536 01dc 9091 0000 		lds r25,sendQueue+1
+ 537 01e0 0E94 0000 		call xQueueReceiveFromISR
+ 538 01e4 8130      		cpi r24,lo8(1)
+ 539 01e6 01F4      		brne .L15
+  71:uart.c        ****       UDR0 = c;
+ 541               	.LM33:
+ 542 01e8 8981      		ldd r24,Y+1
+ 543 01ea 8093 C600 		sts 198,r24
+ 544               	.L15:
+ 545               	/* epilogue start */
+ 546               	.LBE3:
+  72:uart.c        ****   }
+  73:uart.c        **** }
+ 548               	.LM34:
+ 549 01ee 0F90      		pop __tmp_reg__
+ 550 01f0 DF91      		pop r29
+ 551 01f2 CF91      		pop r28
+ 552 01f4 FF91      		pop r31
+ 553 01f6 EF91      		pop r30
+ 554 01f8 BF91      		pop r27
+ 555 01fa AF91      		pop r26
+ 556 01fc 9F91      		pop r25
+ 557 01fe 8F91      		pop r24
+ 558 0200 7F91      		pop r23
+ 559 0202 6F91      		pop r22
+ 560 0204 5F91      		pop r21
+ 561 0206 4F91      		pop r20
+ 562 0208 3F91      		pop r19
+ 563 020a 2F91      		pop r18
+ 564 020c 0F90      		pop r0
+ 565 020e 0FBE      		out __SREG__,r0
+ 566 0210 0F90      		pop r0
+ 567 0212 1F90      		pop r1
+ 568 0214 1895      		reti
+ 573               	.Lscope5:
+ 575               		.stabd	78,0,0
+ 576               		.comm	sendQueue,2,1
+ 577               		.comm	recvQueue,2,1
+ 581               	.Letext0:
+ 582               		.ident	"GCC: (GNU) 5.4.0"
+ 583               	.global __do_clear_bss
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 uart.c
+     /tmp/cco4mnRP.s:2      *ABS*:000000000000003e __SP_H__
+     /tmp/cco4mnRP.s:3      *ABS*:000000000000003d __SP_L__
+     /tmp/cco4mnRP.s:4      *ABS*:000000000000003f __SREG__
+     /tmp/cco4mnRP.s:5      *ABS*:0000000000000000 __tmp_reg__
+     /tmp/cco4mnRP.s:6      *ABS*:0000000000000001 __zero_reg__
+     /tmp/cco4mnRP.s:189    .text:0000000000000000 uart_init
+                            *COM*:0000000000000002 recvQueue
+                            *COM*:0000000000000002 sendQueue
+     /tmp/cco4mnRP.s:246    .text:0000000000000046 uart_transmit
+     /tmp/cco4mnRP.s:320    .text:00000000000000a8 uart_receive
+     /tmp/cco4mnRP.s:386    .text:00000000000000f8 __vector_18
+     /tmp/cco4mnRP.s:482    .text:0000000000000186 __vector_19
+
+UNDEFINED SYMBOLS
+xQueueGenericCreate
+uxQueueSpacesAvailable
+xQueueGenericSend
+uxQueueMessagesWaiting
+xQueueReceive
+uxQueueMessagesWaitingFromISR
+xQueueGenericSendFromISR
+xQueueReceiveFromISR
+__do_clear_bss

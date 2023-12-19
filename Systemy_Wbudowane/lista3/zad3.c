@@ -91,7 +91,7 @@ int main(){
 
         ADCSRA |= _BV(ADSC);
         while(!(ADCSRA & _BV(ADIF)));
-        ADCSRA |= _BV(ADIF);DCSRA |= _BV(ADSC);
+        ADCSRA |= _BV(ADIF); DCSRA |= _BV(ADSC);
         while(!(ADCSRA & _BV(ADIF)));
         ADCSRA |= _BV(ADIF);
 

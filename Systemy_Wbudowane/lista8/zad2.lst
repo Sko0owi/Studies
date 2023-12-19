@@ -1,0 +1,436 @@
+   1               		.file	"zad2.c"
+   2               	__SP_H__ = 0x3e
+   3               	__SP_L__ = 0x3d
+   4               	__SREG__ = 0x3f
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   9               		.text
+  10               	.Ltext0:
+ 186               		.section	.rodata.str1.1,"aMS",@progbits,1
+ 187               	.LC0:
+ 188 0000 506F 6461 		.string	"Podano %d\r\n"
+ 188      6E6F 2025 
+ 188      640D 0A00 
+ 189               		.text
+ 193               	vReadUART:
+ 194               		.stabd	46,0,0
+   1:zad2.c        **** /******************************************************************************
+   2:zad2.c        ****  * Header file inclusions.
+   3:zad2.c        ****  ******************************************************************************/
+   4:zad2.c        **** 
+   5:zad2.c        **** #include "FreeRTOS.h"
+   6:zad2.c        **** #include "task.h"
+   7:zad2.c        **** 
+   8:zad2.c        **** #include <avr/io.h>
+   9:zad2.c        **** 
+  10:zad2.c        **** 
+  11:zad2.c        **** #include <stdio.h>
+  12:zad2.c        **** #include <util/delay.h>
+  13:zad2.c        **** #include "uart.h"
+  14:zad2.c        **** 
+  15:zad2.c        **** #define blink_TASK_PRIORITY 1
+  16:zad2.c        **** 
+  17:zad2.c        **** #define readUART_TASK_PRIORITY 2
+  18:zad2.c        **** 
+  19:zad2.c        **** #define LED PB3
+  20:zad2.c        **** #define LED_DDR DDRB
+  21:zad2.c        **** #define LED_PORT PORTB
+  22:zad2.c        **** 
+  23:zad2.c        **** 
+  24:zad2.c        **** static void vReadUART(void* pvParameters);
+  25:zad2.c        **** static void vBlink(void* pvParameters);
+  26:zad2.c        **** FILE uart_file = FDEV_SETUP_STREAM(uart_transmit, uart_receive, _FDEV_SETUP_RW);
+  27:zad2.c        **** 
+  28:zad2.c        **** QueueHandle_t xQueue1;
+  29:zad2.c        **** 
+  30:zad2.c        **** int main(void)
+  31:zad2.c        **** {
+  32:zad2.c        ****     // Create task.
+  33:zad2.c        ****     xTaskHandle blink_handle;
+  34:zad2.c        ****     xTaskHandle read_handle;
+  35:zad2.c        **** 
+  36:zad2.c        ****     xTaskCreate
+  37:zad2.c        ****         (
+  38:zad2.c        ****             vBlink,
+  39:zad2.c        ****             "Blink according to queue",
+  40:zad2.c        ****             200,
+  41:zad2.c        ****             NULL,
+  42:zad2.c        ****             blink_TASK_PRIORITY,
+  43:zad2.c        ****             &blink_handle
+  44:zad2.c        ****         );
+  45:zad2.c        ****     xTaskCreate
+  46:zad2.c        ****         (
+  47:zad2.c        ****             vReadUART,
+  48:zad2.c        ****             "read from uart",
+  49:zad2.c        ****             700,
+  50:zad2.c        ****             NULL,
+  51:zad2.c        ****             readUART_TASK_PRIORITY,
+  52:zad2.c        ****             &read_handle
+  53:zad2.c        ****         );
+  54:zad2.c        **** 
+  55:zad2.c        ****     
+  56:zad2.c        **** 
+  57:zad2.c        ****     xQueue1 = xQueueCreate( 20, sizeof( uint16_t ) );
+  58:zad2.c        **** 
+  59:zad2.c        ****     xQueueReset(xQueue1);
+  60:zad2.c        **** 
+  61:zad2.c        ****     // Start scheduler.
+  62:zad2.c        ****     vTaskStartScheduler();
+  63:zad2.c        **** 
+  64:zad2.c        ****     return 0;
+  65:zad2.c        **** }
+  66:zad2.c        **** 
+  67:zad2.c        **** void vApplicationIdleHook(void) {}
+  68:zad2.c        **** 
+  69:zad2.c        **** 
+  70:zad2.c        **** static void vBlink(void* pvParameters)
+  71:zad2.c        **** {
+  72:zad2.c        ****     uint16_t time;
+  73:zad2.c        ****     LED_DDR |= _BV(LED);
+  74:zad2.c        **** 
+  75:zad2.c        ****     for (;;) {
+  76:zad2.c        ****         xQueueReceive(xQueue1, &time, portMAX_DELAY);
+  77:zad2.c        **** 
+  78:zad2.c        ****         LED_PORT |= _BV(LED);
+  79:zad2.c        ****         vTaskDelay(time / portTICK_PERIOD_MS);
+  80:zad2.c        ****         LED_PORT &= ~_BV(LED);
+  81:zad2.c        ****         vTaskDelay(200 / portTICK_PERIOD_MS);
+  82:zad2.c        ****     }
+  83:zad2.c        **** }
+  84:zad2.c        **** 
+  85:zad2.c        **** 
+  86:zad2.c        **** static void vReadUART(void* pvParameters)
+  87:zad2.c        **** {
+ 196               	.LM0:
+ 197               	.LFBB1:
+ 198 0000 CF93      		push r28
+ 199 0002 DF93      		push r29
+ 200 0004 CDB7      		in r28,__SP_L__
+ 201 0006 DEB7      		in r29,__SP_H__
+ 202 0008 2C97      		sbiw r28,12
+ 203 000a 0FB6      		in __tmp_reg__,__SREG__
+ 204 000c F894      		cli
+ 205 000e DEBF      		out __SP_H__,r29
+ 206 0010 0FBE      		out __SREG__,__tmp_reg__
+ 207 0012 CDBF      		out __SP_L__,r28
+ 208               	/* prologue: function */
+ 209               	/* frame size = 12 */
+ 210               	/* stack size = 14 */
+ 211               	.L__stack_usage = 14
+  88:zad2.c        ****     uart_init();
+ 213               	.LM1:
+ 214 0014 0E94 0000 		call uart_init
+  89:zad2.c        ****     stdin = stdout = stderr = &uart_file;
+ 216               	.LM2:
+ 217 0018 80E0      		ldi r24,lo8(uart_file)
+ 218 001a 90E0      		ldi r25,hi8(uart_file)
+ 219 001c 9093 0000 		sts __iob+4+1,r25
+ 220 0020 8093 0000 		sts __iob+4,r24
+ 221 0024 9093 0000 		sts __iob+2+1,r25
+ 222 0028 8093 0000 		sts __iob+2,r24
+ 223 002c 9093 0000 		sts __iob+1,r25
+ 224 0030 8093 0000 		sts __iob,r24
+  90:zad2.c        ****     xQueueReset(xQueue1);
+ 226               	.LM3:
+ 227 0034 60E0      		ldi r22,0
+ 228 0036 8091 0000 		lds r24,xQueue1
+ 229 003a 9091 0000 		lds r25,xQueue1+1
+ 230 003e 0E94 0000 		call xQueueGenericReset
+ 231 0042 7E01      		movw r14,r28
+ 232 0044 8BE0      		ldi r24,11
+ 233 0046 E80E      		add r14,r24
+ 234 0048 F11C      		adc r15,__zero_reg__
+ 235               	.LBB2:
+  91:zad2.c        **** 
+  92:zad2.c        ****     uint16_t input;
+  93:zad2.c        **** 
+  94:zad2.c        ****     for (;;) {
+  95:zad2.c        ****         char buff[10], c;
+  96:zad2.c        ****         uint8_t cnt = 0;
+  97:zad2.c        ****         while(c = getchar())
+  98:zad2.c        ****         {
+  99:zad2.c        ****             if (c == '\r') break;
+ 100:zad2.c        ****             buff[cnt++] = c;
+ 101:zad2.c        ****         }
+ 102:zad2.c        ****         input = atoi(buff);
+ 103:zad2.c        ****         
+ 104:zad2.c        ****         for(int i = 0; i < 10; i++) buff[i] = '\0';
+ 105:zad2.c        ****         
+ 106:zad2.c        ****         printf("Podano %d\r\n", input);
+ 237               	.LM4:
+ 238 004a 80E0      		ldi r24,lo8(.LC0)
+ 239 004c C82E      		mov r12,r24
+ 240 004e 80E0      		ldi r24,hi8(.LC0)
+ 241 0050 D82E      		mov r13,r24
+ 242               	.L6:
+  96:zad2.c        ****         while(c = getchar())
+ 244               	.LM5:
+ 245 0052 10E0      		ldi r17,0
+ 246               	.L2:
+  97:zad2.c        ****         {
+ 248               	.LM6:
+ 249 0054 8091 0000 		lds r24,__iob
+ 250 0058 9091 0000 		lds r25,__iob+1
+ 251 005c 0E94 0000 		call fgetc
+ 252 0060 8823      		tst r24
+ 253 0062 01F0      		breq .L3
+  99:zad2.c        ****             buff[cnt++] = c;
+ 255               	.LM7:
+ 256 0064 8D30      		cpi r24,lo8(13)
+ 257 0066 01F0      		breq .L3
+ 100:zad2.c        ****         }
+ 259               	.LM8:
+ 260 0068 E1E0      		ldi r30,lo8(1)
+ 261 006a F0E0      		ldi r31,0
+ 262 006c EC0F      		add r30,r28
+ 263 006e FD1F      		adc r31,r29
+ 264 0070 E10F      		add r30,r17
+ 265 0072 F11D      		adc r31,__zero_reg__
+ 266 0074 8083      		st Z,r24
+ 267 0076 1F5F      		subi r17,lo8(-(1))
+ 268 0078 00C0      		rjmp .L2
+ 269               	.L3:
+ 102:zad2.c        ****         
+ 271               	.LM9:
+ 272 007a CE01      		movw r24,r28
+ 273 007c 0196      		adiw r24,1
+ 274 007e 0E94 0000 		call atoi
+ 275 0082 8B87      		std Y+11,r24
+ 276 0084 9C87      		std Y+12,r25
+ 277 0086 FE01      		movw r30,r28
+ 278 0088 3196      		adiw r30,1
+ 279               	.L5:
+ 280               	.LBB3:
+ 104:zad2.c        ****         
+ 282               	.LM10:
+ 283 008a 1192      		st Z+,__zero_reg__
+ 284 008c EE15      		cp r30,r14
+ 285 008e FF05      		cpc r31,r15
+ 286 0090 01F4      		brne .L5
+ 287               	.LBE3:
+ 289               	.LM11:
+ 290 0092 9F93      		push r25
+ 291 0094 8F93      		push r24
+ 292 0096 DF92      		push r13
+ 293 0098 CF92      		push r12
+ 294 009a 0E94 0000 		call printf
+ 107:zad2.c        ****         xQueueSend(xQueue1, &input, portMAX_DELAY);
+ 296               	.LM12:
+ 297 009e 20E0      		ldi r18,0
+ 298 00a0 4FEF      		ldi r20,lo8(-1)
+ 299 00a2 5FEF      		ldi r21,lo8(-1)
+ 300 00a4 B701      		movw r22,r14
+ 301 00a6 8091 0000 		lds r24,xQueue1
+ 302 00aa 9091 0000 		lds r25,xQueue1+1
+ 303 00ae 0E94 0000 		call xQueueGenericSend
+ 304               	.LBE2:
+ 108:zad2.c        ****     }
+ 306               	.LM13:
+ 307 00b2 0F90      		pop __tmp_reg__
+ 308 00b4 0F90      		pop __tmp_reg__
+ 309 00b6 0F90      		pop __tmp_reg__
+ 310 00b8 0F90      		pop __tmp_reg__
+ 311 00ba 00C0      		rjmp .L6
+ 319               	.Lscope1:
+ 321               		.stabd	78,0,0
+ 325               	vBlink:
+ 326               		.stabd	46,0,0
+  71:zad2.c        ****     uint16_t time;
+ 328               	.LM14:
+ 329               	.LFBB2:
+ 330 00bc CF93      		push r28
+ 331 00be DF93      		push r29
+ 332 00c0 00D0      		rcall .
+ 333 00c2 CDB7      		in r28,__SP_L__
+ 334 00c4 DEB7      		in r29,__SP_H__
+ 335               	/* prologue: function */
+ 336               	/* frame size = 2 */
+ 337               	/* stack size = 4 */
+ 338               	.L__stack_usage = 4
+  73:zad2.c        **** 
+ 340               	.LM15:
+ 341 00c6 239A      		sbi 0x4,3
+ 342               	.L13:
+  76:zad2.c        **** 
+ 344               	.LM16:
+ 345 00c8 4FEF      		ldi r20,lo8(-1)
+ 346 00ca 5FEF      		ldi r21,lo8(-1)
+ 347 00cc BE01      		movw r22,r28
+ 348 00ce 6F5F      		subi r22,-1
+ 349 00d0 7F4F      		sbci r23,-1
+ 350 00d2 8091 0000 		lds r24,xQueue1
+ 351 00d6 9091 0000 		lds r25,xQueue1+1
+ 352 00da 0E94 0000 		call xQueueReceive
+  78:zad2.c        ****         vTaskDelay(time / portTICK_PERIOD_MS);
+ 354               	.LM17:
+ 355 00de 2B9A      		sbi 0x5,3
+  79:zad2.c        ****         LED_PORT &= ~_BV(LED);
+ 357               	.LM18:
+ 358 00e0 8981      		ldd r24,Y+1
+ 359 00e2 9A81      		ldd r25,Y+2
+ 360 00e4 0E94 0000 		call vTaskDelay
+  80:zad2.c        ****         vTaskDelay(200 / portTICK_PERIOD_MS);
+ 362               	.LM19:
+ 363 00e8 2B98      		cbi 0x5,3
+  81:zad2.c        ****     }
+ 365               	.LM20:
+ 366 00ea 88EC      		ldi r24,lo8(-56)
+ 367 00ec 90E0      		ldi r25,0
+ 368 00ee 0E94 0000 		call vTaskDelay
+ 369 00f2 00C0      		rjmp .L13
+ 374               	.Lscope2:
+ 376               		.stabd	78,0,0
+ 377               		.section	.rodata.str1.1
+ 378               	.LC1:
+ 379 000c 426C 696E 		.string	"Blink according to queue"
+ 379      6B20 6163 
+ 379      636F 7264 
+ 379      696E 6720 
+ 379      746F 2071 
+ 380               	.LC2:
+ 381 0025 7265 6164 		.string	"read from uart"
+ 381      2066 726F 
+ 381      6D20 7561 
+ 381      7274 00
+ 382               		.section	.text.startup,"ax",@progbits
+ 384               	.global	main
+ 386               	main:
+ 387               		.stabd	46,0,0
+  31:zad2.c        ****     // Create task.
+ 389               	.LM21:
+ 390               	.LFBB3:
+ 391 0000 EF92      		push r14
+ 392 0002 FF92      		push r15
+ 393 0004 0F93      		push r16
+ 394 0006 CF93      		push r28
+ 395 0008 DF93      		push r29
+ 396 000a 00D0      		rcall .
+ 397 000c 00D0      		rcall .
+ 398 000e CDB7      		in r28,__SP_L__
+ 399 0010 DEB7      		in r29,__SP_H__
+ 400               	/* prologue: function */
+ 401               	/* frame size = 4 */
+ 402               	/* stack size = 9 */
+ 403               	.L__stack_usage = 9
+  36:zad2.c        ****         (
+ 405               	.LM22:
+ 406 0012 CE01      		movw r24,r28
+ 407 0014 0396      		adiw r24,3
+ 408 0016 7C01      		movw r14,r24
+ 409 0018 01E0      		ldi r16,lo8(1)
+ 410 001a 20E0      		ldi r18,0
+ 411 001c 30E0      		ldi r19,0
+ 412 001e 48EC      		ldi r20,lo8(-56)
+ 413 0020 50E0      		ldi r21,0
+ 414 0022 60E0      		ldi r22,lo8(.LC1)
+ 415 0024 70E0      		ldi r23,hi8(.LC1)
+ 416 0026 80E0      		ldi r24,lo8(gs(vBlink))
+ 417 0028 90E0      		ldi r25,hi8(gs(vBlink))
+ 418 002a 0E94 0000 		call xTaskCreate
+  45:zad2.c        ****         (
+ 420               	.LM23:
+ 421 002e CE01      		movw r24,r28
+ 422 0030 0196      		adiw r24,1
+ 423 0032 7C01      		movw r14,r24
+ 424 0034 02E0      		ldi r16,lo8(2)
+ 425 0036 20E0      		ldi r18,0
+ 426 0038 30E0      		ldi r19,0
+ 427 003a 4CEB      		ldi r20,lo8(-68)
+ 428 003c 52E0      		ldi r21,lo8(2)
+ 429 003e 60E0      		ldi r22,lo8(.LC2)
+ 430 0040 70E0      		ldi r23,hi8(.LC2)
+ 431 0042 80E0      		ldi r24,lo8(gs(vReadUART))
+ 432 0044 90E0      		ldi r25,hi8(gs(vReadUART))
+ 433 0046 0E94 0000 		call xTaskCreate
+  57:zad2.c        **** 
+ 435               	.LM24:
+ 436 004a 40E0      		ldi r20,0
+ 437 004c 62E0      		ldi r22,lo8(2)
+ 438 004e 84E1      		ldi r24,lo8(20)
+ 439 0050 0E94 0000 		call xQueueGenericCreate
+ 440 0054 9093 0000 		sts xQueue1+1,r25
+ 441 0058 8093 0000 		sts xQueue1,r24
+  59:zad2.c        **** 
+ 443               	.LM25:
+ 444 005c 60E0      		ldi r22,0
+ 445 005e 0E94 0000 		call xQueueGenericReset
+  62:zad2.c        **** 
+ 447               	.LM26:
+ 448 0062 0E94 0000 		call vTaskStartScheduler
+  65:zad2.c        **** 
+ 450               	.LM27:
+ 451 0066 80E0      		ldi r24,0
+ 452 0068 90E0      		ldi r25,0
+ 453               	/* epilogue start */
+ 454 006a 0F90      		pop __tmp_reg__
+ 455 006c 0F90      		pop __tmp_reg__
+ 456 006e 0F90      		pop __tmp_reg__
+ 457 0070 0F90      		pop __tmp_reg__
+ 458 0072 DF91      		pop r29
+ 459 0074 CF91      		pop r28
+ 460 0076 0F91      		pop r16
+ 461 0078 FF90      		pop r15
+ 462 007a EF90      		pop r14
+ 463 007c 0895      		ret
+ 469               	.Lscope3:
+ 471               		.stabd	78,0,0
+ 472               		.text
+ 474               	.global	vApplicationIdleHook
+ 476               	vApplicationIdleHook:
+ 477               		.stabd	46,0,0
+  67:zad2.c        **** 
+ 479               	.LM28:
+ 480               	.LFBB4:
+ 481               	/* prologue: function */
+ 482               	/* frame size = 0 */
+ 483               	/* stack size = 0 */
+ 484               	.L__stack_usage = 0
+ 485 00f4 0895      		ret
+ 487               	.Lscope4:
+ 489               		.stabd	78,0,0
+ 490               		.comm	xQueue1,2,1
+ 491               	.global	uart_file
+ 492               		.data
+ 495               	uart_file:
+ 496 0000 0000 00   		.zero	3
+ 497 0003 03        		.byte	3
+ 498 0004 0000 0000 		.zero	4
+ 499 0008 0000      		.word	gs(uart_transmit)
+ 500 000a 0000      		.word	gs(uart_receive)
+ 501 000c 0000      		.word	0
+ 504               		.text
+ 506               	.Letext0:
+ 507               		.ident	"GCC: (GNU) 5.4.0"
+ 508               	.global __do_copy_data
+ 509               	.global __do_clear_bss
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 zad2.c
+     /tmp/ccSOlDDG.s:2      *ABS*:000000000000003e __SP_H__
+     /tmp/ccSOlDDG.s:3      *ABS*:000000000000003d __SP_L__
+     /tmp/ccSOlDDG.s:4      *ABS*:000000000000003f __SREG__
+     /tmp/ccSOlDDG.s:5      *ABS*:0000000000000000 __tmp_reg__
+     /tmp/ccSOlDDG.s:6      *ABS*:0000000000000001 __zero_reg__
+     /tmp/ccSOlDDG.s:193    .text:0000000000000000 vReadUART
+     /tmp/ccSOlDDG.s:495    .data:0000000000000000 uart_file
+                            *COM*:0000000000000002 xQueue1
+     /tmp/ccSOlDDG.s:325    .text:00000000000000bc vBlink
+     /tmp/ccSOlDDG.s:386    .text.startup:0000000000000000 main
+     /tmp/ccSOlDDG.s:476    .text:00000000000000f4 vApplicationIdleHook
+
+UNDEFINED SYMBOLS
+uart_init
+__iob
+xQueueGenericReset
+fgetc
+atoi
+printf
+xQueueGenericSend
+xQueueReceive
+vTaskDelay
+xTaskCreate
+xQueueGenericCreate
+vTaskStartScheduler
+uart_transmit
+uart_receive
+__do_copy_data
+__do_clear_bss

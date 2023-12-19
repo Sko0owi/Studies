@@ -1,0 +1,564 @@
+   1               		.file	"zad1.c"
+   2               	__SP_H__ = 0x3e
+   3               	__SP_L__ = 0x3d
+   4               	__SREG__ = 0x3f
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   9               		.text
+  10               	.Ltext0:
+ 189               	vKnightRider:
+ 190               		.stabd	46,0,0
+   1:zad1.c        **** /******************************************************************************
+   2:zad1.c        ****  * Header file inclusions.
+   3:zad1.c        ****  ******************************************************************************/
+   4:zad1.c        **** 
+   5:zad1.c        **** #include "FreeRTOS.h"
+   6:zad1.c        **** #include "task.h"
+   7:zad1.c        **** 
+   8:zad1.c        **** #include <avr/io.h>
+   9:zad1.c        **** 
+  10:zad1.c        **** 
+  11:zad1.c        **** #include <stdio.h>
+  12:zad1.c        **** #include <util/delay.h>
+  13:zad1.c        **** #include "uart.h"
+  14:zad1.c        **** 
+  15:zad1.c        **** #define buttonBlink_TASK_PRIORITY 1
+  16:zad1.c        **** 
+  17:zad1.c        **** #define knightRider_TASK_PRIORITY 2
+  18:zad1.c        **** 
+  19:zad1.c        **** #define LED_BUTTON PB3
+  20:zad1.c        **** #define LED_DDR_BUTTON DDRB
+  21:zad1.c        **** #define LED_PORT_BUTTON PORTB
+  22:zad1.c        **** 
+  23:zad1.c        **** #define BUTTON PB2
+  24:zad1.c        **** #define BUTTON_DDR DDRB
+  25:zad1.c        **** #define BUTTON_PORT PORTB
+  26:zad1.c        **** #define BUTTON_PIN PINB
+  27:zad1.c        **** 
+  28:zad1.c        **** 
+  29:zad1.c        **** #define LED_DDR DDRD
+  30:zad1.c        **** #define LED_PORT PORTD
+  31:zad1.c        **** 
+  32:zad1.c        **** 
+  33:zad1.c        **** static void vButtonBlink(void* pvParameters);
+  34:zad1.c        **** static void vKnightRider(void* pvParameters);
+  35:zad1.c        **** FILE uart_file = FDEV_SETUP_STREAM(uart_transmit, uart_receive, _FDEV_SETUP_RW);
+  36:zad1.c        **** 
+  37:zad1.c        **** int main(void)
+  38:zad1.c        **** {
+  39:zad1.c        ****     // Create task.
+  40:zad1.c        ****     xTaskHandle buttonBlink_handle;
+  41:zad1.c        ****     xTaskHandle knightRider_handle;
+  42:zad1.c        **** 
+  43:zad1.c        ****     xTaskCreate
+  44:zad1.c        ****         (
+  45:zad1.c        ****             vButtonBlink,
+  46:zad1.c        ****             "Button Blink",
+  47:zad1.c        ****             configMINIMAL_STACK_SIZE,
+  48:zad1.c        ****             NULL,
+  49:zad1.c        ****             buttonBlink_TASK_PRIORITY,
+  50:zad1.c        ****             &buttonBlink_handle
+  51:zad1.c        ****         );
+  52:zad1.c        ****     xTaskCreate
+  53:zad1.c        ****         (
+  54:zad1.c        ****             vKnightRider,
+  55:zad1.c        ****             "Knight Rider",
+  56:zad1.c        ****             configMINIMAL_STACK_SIZE,
+  57:zad1.c        ****             NULL,
+  58:zad1.c        ****             knightRider_TASK_PRIORITY,
+  59:zad1.c        ****             &knightRider_handle
+  60:zad1.c        ****         );
+  61:zad1.c        **** 
+  62:zad1.c        ****     
+  63:zad1.c        **** 
+  64:zad1.c        ****     // Start scheduler.
+  65:zad1.c        ****     vTaskStartScheduler();
+  66:zad1.c        **** 
+  67:zad1.c        ****     return 0;
+  68:zad1.c        **** }
+  69:zad1.c        **** 
+  70:zad1.c        **** void vApplicationIdleHook(void) {}
+  71:zad1.c        **** 
+  72:zad1.c        **** 
+  73:zad1.c        **** uint8_t circular_buffer[126];
+  74:zad1.c        **** 
+  75:zad1.c        **** void set_buffer(uint16_t ind)
+  76:zad1.c        **** {
+  77:zad1.c        ****     if(ind == 0) ind = 1001;
+  78:zad1.c        ****     else ind--;
+  79:zad1.c        **** 
+  80:zad1.c        ****     uint16_t ind_tab = ind >> 3;
+  81:zad1.c        ****     uint16_t ind_bite = 7 - (ind & 7);
+  82:zad1.c        **** 
+  83:zad1.c        ****     circular_buffer[ind_tab] |= (1 << ind_bite);
+  84:zad1.c        **** }
+  85:zad1.c        **** 
+  86:zad1.c        **** void light(uint16_t ind)
+  87:zad1.c        **** {
+  88:zad1.c        ****     uint16_t ind_tab = ind >> 3;
+  89:zad1.c        ****     uint16_t ind_bite = 7 - (ind & 7);
+  90:zad1.c        **** 
+  91:zad1.c        ****     if(bit_is_set(circular_buffer[ind_tab], ind_bite))
+  92:zad1.c        ****     {
+  93:zad1.c        ****         LED_PORT_BUTTON |= _BV(LED_BUTTON);
+  94:zad1.c        ****         circular_buffer[ind_tab] &= ~(1 << ind_bite);
+  95:zad1.c        ****     } else 
+  96:zad1.c        ****     {
+  97:zad1.c        ****         LED_PORT_BUTTON &= ~_BV(LED_BUTTON);
+  98:zad1.c        ****     }
+  99:zad1.c        **** }
+ 100:zad1.c        **** 
+ 101:zad1.c        **** void button_init()
+ 102:zad1.c        **** {
+ 103:zad1.c        ****     BUTTON_DDR &= ~ _BV(BUTTON);
+ 104:zad1.c        ****     LED_DDR_BUTTON |= _BV(LED_BUTTON);
+ 105:zad1.c        **** 
+ 106:zad1.c        ****     BUTTON_PORT |= _BV(BUTTON);
+ 107:zad1.c        **** }
+ 108:zad1.c        **** 
+ 109:zad1.c        **** uint16_t time = 0;
+ 110:zad1.c        **** 
+ 111:zad1.c        **** 
+ 112:zad1.c        **** static void vButtonBlink(void* pvParameters)
+ 113:zad1.c        **** {
+ 114:zad1.c        ****     button_init();
+ 115:zad1.c        **** 
+ 116:zad1.c        ****     while(1) 
+ 117:zad1.c        ****     {
+ 118:zad1.c        ****         light(time);
+ 119:zad1.c        **** 
+ 120:zad1.c        ****         if(bit_is_clear(BUTTON_PIN, BUTTON))
+ 121:zad1.c        ****         {
+ 122:zad1.c        ****             set_buffer(time);
+ 123:zad1.c        ****         }
+ 124:zad1.c        **** 
+ 125:zad1.c        ****         vTaskDelay(1 / portTICK_PERIOD_MS);
+ 126:zad1.c        **** 
+ 127:zad1.c        ****         if(time++ == 1001) time = 0;
+ 128:zad1.c        ****         // printf("%s\n", buffer);
+ 129:zad1.c        ****     }
+ 130:zad1.c        **** }
+ 131:zad1.c        **** 
+ 132:zad1.c        **** static void vKnightRider(void* pvParameters)
+ 133:zad1.c        **** {
+ 192               	.LM0:
+ 193               	.LFBB1:
+ 194               	/* prologue: function */
+ 195               	/* frame size = 0 */
+ 196               	/* stack size = 0 */
+ 197               	.L__stack_usage = 0
+ 134:zad1.c        **** 
+ 135:zad1.c        ****     UCSR0B &= ~_BV(RXEN0) & ~_BV(TXEN0);
+ 199               	.LM1:
+ 200 0000 8091 C100 		lds r24,193
+ 201 0004 877E      		andi r24,lo8(-25)
+ 202 0006 8093 C100 		sts 193,r24
+ 136:zad1.c        **** 
+ 137:zad1.c        **** 
+ 138:zad1.c        ****     uint8_t direction = 0; // 1 -> left, 0 -> right
+ 139:zad1.c        ****     uint8_t setup = -1;
+ 140:zad1.c        ****     uint8_t currLaser = (1<<7) | (1<<6);
+ 141:zad1.c        **** 
+ 142:zad1.c        ****     LED_DDR |= setup;
+ 204               	.LM2:
+ 205 000a 8AB1      		in r24,0xa
+ 206 000c 8FEF      		ldi r24,lo8(-1)
+ 207 000e 8AB9      		out 0xa,r24
+ 143:zad1.c        ****     LED_PORT = 0;
+ 209               	.LM3:
+ 210 0010 1BB8      		out 0xb,__zero_reg__
+ 140:zad1.c        **** 
+ 212               	.LM4:
+ 213 0012 C0EC      		ldi r28,lo8(-64)
+ 138:zad1.c        ****     uint8_t setup = -1;
+ 215               	.LM5:
+ 216 0014 D0E0      		ldi r29,0
+ 217               	.L2:
+ 144:zad1.c        ****     
+ 145:zad1.c        ****     while (1) {
+ 146:zad1.c        **** 
+ 147:zad1.c        ****         direction &= ~((currLaser & (1 << 7)) >> 7);
+ 148:zad1.c        ****         direction |= (currLaser & 1);
+ 219               	.LM6:
+ 220 0016 8C2F      		mov r24,r28
+ 221 0018 881F      		rol r24
+ 222 001a 8827      		clr r24
+ 223 001c 881F      		rol r24
+ 224 001e 8095      		com r24
+ 225 0020 D823      		and r29,r24
+ 226 0022 8C2F      		mov r24,r28
+ 227 0024 8170      		andi r24,lo8(1)
+ 228 0026 D82B      		or r29,r24
+ 149:zad1.c        **** 
+ 150:zad1.c        ****         LED_PORT = currLaser;
+ 230               	.LM7:
+ 231 0028 CBB9      		out 0xb,r28
+ 151:zad1.c        ****         vTaskDelay(50 / portTICK_PERIOD_MS);
+ 233               	.LM8:
+ 234 002a 82E3      		ldi r24,lo8(50)
+ 235 002c 90E0      		ldi r25,0
+ 236 002e 0E94 0000 		call vTaskDelay
+ 152:zad1.c        **** 
+ 153:zad1.c        ****         if (direction)
+ 238               	.LM9:
+ 239 0032 DD23      		tst r29
+ 240 0034 01F0      		breq .L3
+ 154:zad1.c        ****         {
+ 155:zad1.c        ****             currLaser <<= 1;
+ 242               	.LM10:
+ 243 0036 CC0F      		lsl r28
+ 244 0038 00C0      		rjmp .L2
+ 245               	.L3:
+ 156:zad1.c        ****         } else 
+ 157:zad1.c        ****         {
+ 158:zad1.c        ****             currLaser >>= 1;
+ 247               	.LM11:
+ 248 003a C695      		lsr r28
+ 249 003c 00C0      		rjmp .L2
+ 255               	.Lscope1:
+ 257               		.stabd	78,0,0
+ 258               		.section	.rodata.str1.1,"aMS",@progbits,1
+ 259               	.LC0:
+ 260 0000 4275 7474 		.string	"Button Blink"
+ 260      6F6E 2042 
+ 260      6C69 6E6B 
+ 260      00
+ 261               	.LC1:
+ 262 000d 4B6E 6967 		.string	"Knight Rider"
+ 262      6874 2052 
+ 262      6964 6572 
+ 262      00
+ 263               		.section	.text.startup,"ax",@progbits
+ 265               	.global	main
+ 267               	main:
+ 268               		.stabd	46,0,0
+  38:zad1.c        ****     // Create task.
+ 270               	.LM12:
+ 271               	.LFBB2:
+ 272 0000 EF92      		push r14
+ 273 0002 FF92      		push r15
+ 274 0004 0F93      		push r16
+ 275 0006 CF93      		push r28
+ 276 0008 DF93      		push r29
+ 277 000a 00D0      		rcall .
+ 278 000c 00D0      		rcall .
+ 279 000e CDB7      		in r28,__SP_L__
+ 280 0010 DEB7      		in r29,__SP_H__
+ 281               	/* prologue: function */
+ 282               	/* frame size = 4 */
+ 283               	/* stack size = 9 */
+ 284               	.L__stack_usage = 9
+  43:zad1.c        ****         (
+ 286               	.LM13:
+ 287 0012 CE01      		movw r24,r28
+ 288 0014 0396      		adiw r24,3
+ 289 0016 7C01      		movw r14,r24
+ 290 0018 01E0      		ldi r16,lo8(1)
+ 291 001a 20E0      		ldi r18,0
+ 292 001c 30E0      		ldi r19,0
+ 293 001e 45E5      		ldi r20,lo8(85)
+ 294 0020 50E0      		ldi r21,0
+ 295 0022 60E0      		ldi r22,lo8(.LC0)
+ 296 0024 70E0      		ldi r23,hi8(.LC0)
+ 297 0026 80E0      		ldi r24,lo8(gs(vButtonBlink))
+ 298 0028 90E0      		ldi r25,hi8(gs(vButtonBlink))
+ 299 002a 0E94 0000 		call xTaskCreate
+  52:zad1.c        ****         (
+ 301               	.LM14:
+ 302 002e CE01      		movw r24,r28
+ 303 0030 0196      		adiw r24,1
+ 304 0032 7C01      		movw r14,r24
+ 305 0034 02E0      		ldi r16,lo8(2)
+ 306 0036 20E0      		ldi r18,0
+ 307 0038 30E0      		ldi r19,0
+ 308 003a 45E5      		ldi r20,lo8(85)
+ 309 003c 50E0      		ldi r21,0
+ 310 003e 60E0      		ldi r22,lo8(.LC1)
+ 311 0040 70E0      		ldi r23,hi8(.LC1)
+ 312 0042 80E0      		ldi r24,lo8(gs(vKnightRider))
+ 313 0044 90E0      		ldi r25,hi8(gs(vKnightRider))
+ 314 0046 0E94 0000 		call xTaskCreate
+  65:zad1.c        **** 
+ 316               	.LM15:
+ 317 004a 0E94 0000 		call vTaskStartScheduler
+  68:zad1.c        **** 
+ 319               	.LM16:
+ 320 004e 80E0      		ldi r24,0
+ 321 0050 90E0      		ldi r25,0
+ 322               	/* epilogue start */
+ 323 0052 0F90      		pop __tmp_reg__
+ 324 0054 0F90      		pop __tmp_reg__
+ 325 0056 0F90      		pop __tmp_reg__
+ 326 0058 0F90      		pop __tmp_reg__
+ 327 005a DF91      		pop r29
+ 328 005c CF91      		pop r28
+ 329 005e 0F91      		pop r16
+ 330 0060 FF90      		pop r15
+ 331 0062 EF90      		pop r14
+ 332 0064 0895      		ret
+ 338               	.Lscope2:
+ 340               		.stabd	78,0,0
+ 341               		.text
+ 343               	.global	vApplicationIdleHook
+ 345               	vApplicationIdleHook:
+ 346               		.stabd	46,0,0
+  70:zad1.c        **** 
+ 348               	.LM17:
+ 349               	.LFBB3:
+ 350               	/* prologue: function */
+ 351               	/* frame size = 0 */
+ 352               	/* stack size = 0 */
+ 353               	.L__stack_usage = 0
+ 354 003e 0895      		ret
+ 356               	.Lscope3:
+ 358               		.stabd	78,0,0
+ 361               	.global	set_buffer
+ 363               	set_buffer:
+ 364               		.stabd	46,0,0
+  76:zad1.c        ****     if(ind == 0) ind = 1001;
+ 366               	.LM18:
+ 367               	.LFBB4:
+ 368               	/* prologue: function */
+ 369               	/* frame size = 0 */
+ 370               	/* stack size = 0 */
+ 371               	.L__stack_usage = 0
+  77:zad1.c        ****     else ind--;
+ 373               	.LM19:
+ 374 0040 0097      		sbiw r24,0
+ 375 0042 01F0      		breq .L10
+  78:zad1.c        **** 
+ 377               	.LM20:
+ 378 0044 0197      		sbiw r24,1
+ 379 0046 00C0      		rjmp .L9
+ 380               	.L10:
+  77:zad1.c        ****     else ind--;
+ 382               	.LM21:
+ 383 0048 89EE      		ldi r24,lo8(-23)
+ 384 004a 93E0      		ldi r25,lo8(3)
+ 385               	.L9:
+  80:zad1.c        ****     uint16_t ind_bite = 7 - (ind & 7);
+ 387               	.LM22:
+ 388 004c FC01      		movw r30,r24
+ 389 004e 23E0      		ldi r18,3
+ 390               		1:
+ 391 0050 F695      		lsr r31
+ 392 0052 E795      		ror r30
+ 393 0054 2A95      		dec r18
+ 394 0056 01F4      		brne 1b
+  83:zad1.c        **** }
+ 396               	.LM23:
+ 397 0058 E050      		subi r30,lo8(-(circular_buffer))
+ 398 005a F040      		sbci r31,hi8(-(circular_buffer))
+ 399 005c 8095      		com r24
+ 400 005e 9095      		com r25
+ 401 0060 8770      		andi r24,7
+ 402 0062 9927      		clr r25
+ 403 0064 21E0      		ldi r18,lo8(1)
+ 404 0066 30E0      		ldi r19,0
+ 405 0068 A901      		movw r20,r18
+ 406 006a 00C0      		rjmp 2f
+ 407               		1:
+ 408 006c 440F      		lsl r20
+ 409 006e 551F      		rol r21
+ 410               		2:
+ 411 0070 8A95      		dec r24
+ 412 0072 02F4      		brpl 1b
+ 413 0074 CA01      		movw r24,r20
+ 414 0076 9081      		ld r25,Z
+ 415 0078 892B      		or r24,r25
+ 416 007a 8083      		st Z,r24
+ 417 007c 0895      		ret
+ 422               	.Lscope4:
+ 424               		.stabd	78,0,0
+ 427               	.global	light
+ 429               	light:
+ 430               		.stabd	46,0,0
+  87:zad1.c        ****     uint16_t ind_tab = ind >> 3;
+ 432               	.LM24:
+ 433               	.LFBB5:
+ 434               	/* prologue: function */
+ 435               	/* frame size = 0 */
+ 436               	/* stack size = 0 */
+ 437               	.L__stack_usage = 0
+  88:zad1.c        ****     uint16_t ind_bite = 7 - (ind & 7);
+ 439               	.LM25:
+ 440 007e FC01      		movw r30,r24
+ 441 0080 23E0      		ldi r18,3
+ 442               		1:
+ 443 0082 F695      		lsr r31
+ 444 0084 E795      		ror r30
+ 445 0086 2A95      		dec r18
+ 446 0088 01F4      		brne 1b
+  89:zad1.c        **** 
+ 448               	.LM26:
+ 449 008a 8095      		com r24
+ 450 008c 9095      		com r25
+ 451 008e 8770      		andi r24,7
+ 452 0090 9927      		clr r25
+  91:zad1.c        ****     {
+ 454               	.LM27:
+ 455 0092 E050      		subi r30,lo8(-(circular_buffer))
+ 456 0094 F040      		sbci r31,hi8(-(circular_buffer))
+ 457 0096 2081      		ld r18,Z
+ 458 0098 30E0      		ldi r19,0
+ 459 009a 082E      		mov r0,r24
+ 460 009c 00C0      		rjmp 2f
+ 461               		1:
+ 462 009e 3595      		asr r19
+ 463 00a0 2795      		ror r18
+ 464               		2:
+ 465 00a2 0A94      		dec r0
+ 466 00a4 02F4      		brpl 1b
+ 467 00a6 20FF      		sbrs r18,0
+ 468 00a8 00C0      		rjmp .L12
+  93:zad1.c        ****         circular_buffer[ind_tab] &= ~(1 << ind_bite);
+ 470               	.LM28:
+ 471 00aa 2B9A      		sbi 0x5,3
+  94:zad1.c        ****     } else 
+ 473               	.LM29:
+ 474 00ac 21E0      		ldi r18,lo8(1)
+ 475 00ae 30E0      		ldi r19,0
+ 476 00b0 A901      		movw r20,r18
+ 477 00b2 00C0      		rjmp 2f
+ 478               		1:
+ 479 00b4 440F      		lsl r20
+ 480 00b6 551F      		rol r21
+ 481               		2:
+ 482 00b8 8A95      		dec r24
+ 483 00ba 02F4      		brpl 1b
+ 484 00bc CA01      		movw r24,r20
+ 485 00be 8095      		com r24
+ 486 00c0 9081      		ld r25,Z
+ 487 00c2 8923      		and r24,r25
+ 488 00c4 8083      		st Z,r24
+ 489 00c6 0895      		ret
+ 490               	.L12:
+ 491               	.LBB4:
+ 492               	.LBB5:
+  97:zad1.c        ****     }
+ 494               	.LM30:
+ 495 00c8 2B98      		cbi 0x5,3
+ 496 00ca 0895      		ret
+ 497               	.LBE5:
+ 498               	.LBE4:
+ 504               	.Lscope5:
+ 506               		.stabd	78,0,0
+ 508               	.global	button_init
+ 510               	button_init:
+ 511               		.stabd	46,0,0
+ 102:zad1.c        ****     BUTTON_DDR &= ~ _BV(BUTTON);
+ 513               	.LM31:
+ 514               	.LFBB6:
+ 515               	/* prologue: function */
+ 516               	/* frame size = 0 */
+ 517               	/* stack size = 0 */
+ 518               	.L__stack_usage = 0
+ 103:zad1.c        ****     LED_DDR_BUTTON |= _BV(LED_BUTTON);
+ 520               	.LM32:
+ 521 00cc 2298      		cbi 0x4,2
+ 104:zad1.c        **** 
+ 523               	.LM33:
+ 524 00ce 239A      		sbi 0x4,3
+ 106:zad1.c        **** }
+ 526               	.LM34:
+ 527 00d0 2A9A      		sbi 0x5,2
+ 528 00d2 0895      		ret
+ 530               	.Lscope6:
+ 532               		.stabd	78,0,0
+ 536               	vButtonBlink:
+ 537               		.stabd	46,0,0
+ 113:zad1.c        ****     button_init();
+ 539               	.LM35:
+ 540               	.LFBB7:
+ 541               	/* prologue: function */
+ 542               	/* frame size = 0 */
+ 543               	/* stack size = 0 */
+ 544               	.L__stack_usage = 0
+ 114:zad1.c        **** 
+ 546               	.LM36:
+ 547 00d4 0E94 0000 		call button_init
+ 548               	.L17:
+ 118:zad1.c        **** 
+ 550               	.LM37:
+ 551 00d8 8091 0000 		lds r24,time
+ 552 00dc 9091 0000 		lds r25,time+1
+ 553 00e0 0E94 0000 		call light
+ 120:zad1.c        ****         {
+ 555               	.LM38:
+ 556 00e4 1A99      		sbic 0x3,2
+ 557 00e6 00C0      		rjmp .L16
+ 122:zad1.c        ****         }
+ 559               	.LM39:
+ 560 00e8 8091 0000 		lds r24,time
+ 561 00ec 9091 0000 		lds r25,time+1
+ 562 00f0 0E94 0000 		call set_buffer
+ 563               	.L16:
+ 125:zad1.c        **** 
+ 565               	.LM40:
+ 566 00f4 81E0      		ldi r24,lo8(1)
+ 567 00f6 90E0      		ldi r25,0
+ 568 00f8 0E94 0000 		call vTaskDelay
+ 127:zad1.c        ****         // printf("%s\n", buffer);
+ 570               	.LM41:
+ 571 00fc 8091 0000 		lds r24,time
+ 572 0100 9091 0000 		lds r25,time+1
+ 573 0104 9C01      		movw r18,r24
+ 574 0106 2F5F      		subi r18,-1
+ 575 0108 3F4F      		sbci r19,-1
+ 576 010a 3093 0000 		sts time+1,r19
+ 577 010e 2093 0000 		sts time,r18
+ 578 0112 893E      		cpi r24,-23
+ 579 0114 9340      		sbci r25,3
+ 580 0116 01F4      		brne .L17
+ 127:zad1.c        ****         // printf("%s\n", buffer);
+ 582               	.LM42:
+ 583 0118 1092 0000 		sts time+1,__zero_reg__
+ 584 011c 1092 0000 		sts time,__zero_reg__
+ 585 0120 00C0      		rjmp .L17
+ 587               	.Lscope7:
+ 589               		.stabd	78,0,0
+ 590               	.global	time
+ 591               		.section .bss
+ 594               	time:
+ 595 0000 0000      		.zero	2
+ 596               		.comm	circular_buffer,126,1
+ 597               	.global	uart_file
+ 598               		.data
+ 601               	uart_file:
+ 602 0000 0000 00   		.zero	3
+ 603 0003 03        		.byte	3
+ 604 0004 0000 0000 		.zero	4
+ 605 0008 0000      		.word	gs(uart_transmit)
+ 606 000a 0000      		.word	gs(uart_receive)
+ 607 000c 0000      		.word	0
+ 611               		.text
+ 613               	.Letext0:
+ 614               		.ident	"GCC: (GNU) 5.4.0"
+ 615               	.global __do_copy_data
+ 616               	.global __do_clear_bss
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 zad1.c
+     /tmp/ccgoVrID.s:2      *ABS*:000000000000003e __SP_H__
+     /tmp/ccgoVrID.s:3      *ABS*:000000000000003d __SP_L__
+     /tmp/ccgoVrID.s:4      *ABS*:000000000000003f __SREG__
+     /tmp/ccgoVrID.s:5      *ABS*:0000000000000000 __tmp_reg__
+     /tmp/ccgoVrID.s:6      *ABS*:0000000000000001 __zero_reg__
+     /tmp/ccgoVrID.s:189    .text:0000000000000000 vKnightRider
+     /tmp/ccgoVrID.s:267    .text.startup:0000000000000000 main
+     /tmp/ccgoVrID.s:536    .text:00000000000000d4 vButtonBlink
+     /tmp/ccgoVrID.s:345    .text:000000000000003e vApplicationIdleHook
+     /tmp/ccgoVrID.s:363    .text:0000000000000040 set_buffer
+                            *COM*:000000000000007e circular_buffer
+     /tmp/ccgoVrID.s:429    .text:000000000000007e light
+     /tmp/ccgoVrID.s:510    .text:00000000000000cc button_init
+     /tmp/ccgoVrID.s:594    .bss:0000000000000000 time
+     /tmp/ccgoVrID.s:601    .data:0000000000000000 uart_file
+
+UNDEFINED SYMBOLS
+vTaskDelay
+xTaskCreate
+vTaskStartScheduler
+uart_transmit
+uart_receive
+__do_copy_data
+__do_clear_bss

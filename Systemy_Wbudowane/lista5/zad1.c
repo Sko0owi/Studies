@@ -25,7 +25,7 @@ static volatile uint8_t button_pressed = 1;
 void clock_init()
 {
 
-    TCCR0A |= _BV(WGM00);
+    TCCR0A |= _BV(WGMzzz0);
     TCCR0B |= _BV(CS01) | _BV(CS00);
     TIMSK0 |= _BV(OCIE0A);
     OCR0A = 124;
