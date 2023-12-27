@@ -1,20 +1,16 @@
 
-PRG                = zad3
-OBJ                = ${PRG}.o 
-PROGRAMMER         = stk500v1
-PROGRAMMER_ISP     = arduino
-PORT               = /dev/ttyUSB0
-MCU_TARGET         = attiny84
-AVRDUDE_TARGET     = attiny84
-AVRDUDE_TARGET_ISP = atmega328p
-OPTIMIZE           = -O3
-DEFS               = 
-LIBS               = USI_TWI_Master.c #-Wl,-u,vfprintf -lprintf_flt -lm
-BAUDRATE           = 19200
-BAUDRATE_ISP       = 115200
-#BAUDRATE           = 115200
+PRG            = zad3
+OBJ            = ${PRG}.o
+PROGRAMMER     = arduino
+PORT           = /dev/ttyUSB0
+MCU_TARGET     = atmega328p 
+AVRDUDE_TARGET = atmega328p
+OPTIMIZE       = -O3
+DEFS           =
+LIBS           = hd44780.c -Wl,-u,vfprintf -lprintf_flt -Wl,-u,vfscanf -lscanf_flt -lm
+BAUDRATE       = 115200
 
-HZ          = 1000000
+HZ          = 16000000
 
 # You should not have to change anything below here.
 
@@ -35,8 +31,8 @@ $(PRG).elf: $(OBJ)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 clean:
-	rm -rf *.o $(PRG).elf *.eps *.png *.pdf *.bak $(PRG).hex $(PRG).bin $(PRG).srec
-	rm -rf $(PRG).lst *.map $(EXTRA_CLEAN_FILES)
+	rm -rf *.o $(PRG).elf *.eps *.png *.pdf *.bak *.hex *.bin *.srec
+	rm -rf *.lst *.map *.elf $(EXTRA_CLEAN_FILES)
 
 lst:  $(PRG).lst
 
@@ -61,18 +57,13 @@ srec: $(PRG).srec
 %.bin: %.elf
 	$(OBJCOPY) -j .text -j .data -O binary $< $@
 
-arduinoisp: arduinoisp.hex
-	avrdude -p $(AVRDUDE_TARGET_ISP) -c $(PROGRAMMER_ISP) -P $(PORT) \
-        -b $(BAUDRATE_ISP) -v -U flash:w:arduinoisp.hex 
-
 install:  $(PRG).hex
 	avrdude -p $(AVRDUDE_TARGET) -c $(PROGRAMMER) -P $(PORT) \
         -b $(BAUDRATE) -v -U flash:w:$(PRG).hex 
 
-install_ISP:  $(PRG).hex
-	avrdude -p $(AVRDUDE_TARGET_ISP) -c $(PROGRAMMER_ISP) -P $(PORT) \
-        -b $(BAUDRATE_ISP) -v -U flash:w:$(PRG).hex 
-
 screen:
 	screen $(PORT)
+
+miniterm:
+	miniterm $(PORT)
 

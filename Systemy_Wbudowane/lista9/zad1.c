@@ -34,7 +34,7 @@ void interrupt_init()
 {
     MCUCR |= _BV(ISC00);
     GIMSK |=  _BV(PCIE0);
-    PCMSK0 |= _BV(PCINT0);
+    PCMSK0 |= _BV(PCINT7);
 }
 void init()
 {

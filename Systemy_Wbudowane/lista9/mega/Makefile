@@ -1,5 +1,5 @@
 
-PRG            = zad2_slave
+PRG            = zad3_slave
 OBJ            = ${PRG}.o
 PROGRAMMER     = arduino
 PORT           = /dev/ttyUSB0
