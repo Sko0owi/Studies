@@ -9,8 +9,8 @@
 #define BAUD 9600                            // baudrate
 #define UBRR_VALUE ((F_CPU) / 16 / (BAUD)-1) // zgodnie ze wzorem
 #define BUFFER_SIZE 64
-#define V_0 0.4
-#define TemperatureCoefficient 0.010
+#define V_0 0.5
+#define TemperatureCoefficient 0.014
 
 #define GRZALA PB5        // Dioda
 #define GRZALA_DDR DDRB   // dioda ddr
@@ -69,7 +69,7 @@ ISR(ADC_vect)
     ADCSRA |= _BV(ADIF);
     float V_IN = (ADC * 1.1) / 1024;
     ReadTemperature = (V_IN - V_0) / TemperatureCoefficient; // z noty katalogowej termometra
-    printf("Current Temperature: %f\r\n", V_IN);
+    // printf("Current Temperature: %f\r\n", V_IN);
 
     if (isCooling)
     {
