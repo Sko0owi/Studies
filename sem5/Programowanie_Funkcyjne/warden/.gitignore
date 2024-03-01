@@ -1,3 +1,4 @@
 .stack-work/
-*~
-/src/*.secret
+./src/guildid.secret
+./src/auth-token.secret
+/~
