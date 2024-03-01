@@ -1,4 +1,4 @@
+/src/guildid.secret
+/src/auth-token.secret
 .stack-work/
-./src/guildid.secret
-./src/auth-token.secret
 /~
