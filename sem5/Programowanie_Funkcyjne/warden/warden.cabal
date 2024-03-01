@@ -1,0 +1,86 @@
+cabal-version: 2.2
+
+-- This file has been generated from package.yaml by hpack version 0.36.0.
+--
+-- see: https://github.com/sol/hpack
+
+name:           warden
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/githubuser/warden#readme>
+homepage:       https://github.com/githubuser/warden#readme
+bug-reports:    https://github.com/githubuser/warden/issues
+author:         Dawid Skowronek
+maintainer:     dawid.skowronek24@gmail.com
+copyright:      2024 Dawid Skowronek
+license:        BSD-3-Clause
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    CHANGELOG.md
+
+source-repository head
+  type: git
+  location: https://github.com/githubuser/warden
+
+library
+  exposed-modules:
+      BotHandler
+      BotState
+      BotStateHandler
+      BotUtils
+      DiscordHandler
+      DiscordUtils
+  other-modules:
+      Paths_warden
+  autogen-modules:
+      Paths_warden
+  hs-source-dirs:
+      src
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , discord-haskell
+    , mtl
+    , regex-tdfa
+    , text
+    , unliftio
+  default-language: Haskell2010
+
+executable warden-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_warden
+  autogen-modules:
+      Paths_warden
+  hs-source-dirs:
+      app
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , discord-haskell
+    , text
+    , unliftio
+    , warden
+  default-language: Haskell2010
+
+test-suite warden-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      TestBot
+      Paths_warden
+  autogen-modules:
+      Paths_warden
+  hs-source-dirs:
+      test
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , discord-haskell
+    , mtl
+    , regex-tdfa
+    , text
+    , unliftio
+    , warden
+  default-language: Haskell2010

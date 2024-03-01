@@ -1,0 +1,8 @@
+pupa
+dupa
+kupa
+stolec
+języki imperatywne
+haskell śmierdzi
+ocaml lepszy
+test

@@ -1,0 +1,3 @@
+headers/hdr2.img:ursula
+headers/hdr2.img:bloemen
+headers/hdr2.img:alfonzo
