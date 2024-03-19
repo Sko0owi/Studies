@@ -1,0 +1,1 @@
+zgrep -ic bash /usr/share/doc/bash/INTRO.gz

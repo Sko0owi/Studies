@@ -1,0 +1,92 @@
+#!/bin/bash
+
+OPTIONS=$(getopt -o cg:hvw --l capitalize,color:,greeting:,help,version,world -n 'hwb' -u -- "$@")
+
+
+if [ $? -ne 0 ] || [ $# -eq 0 ]; then
+    echo "Try '$0 --help' for more information."
+    exit 1
+fi
+
+eval set -- "$OPTIONS"
+
+CAPITALIZE=false
+COLOR=auto
+GREETING="Hello,"
+PRINT_EXTRA_WORLD=false
+
+
+while true; do
+    case "$1" in
+        -c|--capitalize)
+            CAPITALIZE=true
+            shift;;
+
+        -g|--greeting)
+            if [ -n "$2" ]; then
+                GREETING="$2"
+            fi
+            shift 2;;
+
+        --color)
+            if [ -n "$2" ]; then
+                COLOR="$2"
+            fi
+            shift 2;;
+
+        -w|--world)
+            PRINT_EXTRA_WORLD=true
+            shift;;
+
+        -v|--version)
+            echo "hwb version 0.1 created by Dawid Skowronek"
+            shift;;
+
+        -h|--help)
+            echo "Usage: bash $0 <options> <arguments>"
+            echo "Options: "
+            echo "-c, --capitalize            = capitalize first letter of string"
+            echo "-g, --greeting              = substitute 'Hello' for given text"
+            echo "--color[=auto|always|never] = colorize the output"
+            echo "-w, --world                 = print 'Hello, world!' in next line"
+            echo "-v, --verison               = print version"
+            echo "-h, --help                  = print help"
+            shift;;
+        
+        --)
+            shift
+            break;;
+    esac
+done
+
+
+for arg; do
+    Name=$1
+
+    if [[ $CAPITALIZE ]]; then
+        Name=${Name^}
+    fi
+
+    if [[ $COLOR == auto || $COLOR == always ]]; then
+            Name="\033[0;34m$Name"
+    fi
+
+    echo -e "${GREETING} ${Name}\033[0m!"
+done
+
+
+if $PRINT_EXTRA_WORLD; then
+    GREETING="Hello,"
+    
+    Name="world"
+
+    if [[ $CAPITALIZE ]]; then
+        Name=${Name^}
+    fi
+
+    if [[ $COLOR == auto || $COLOR == always ]]; then
+            Name="\033[0;34m$Name"
+    fi
+
+    echo -e "${GREETING} ${Name}\033[0m!"
+fi
