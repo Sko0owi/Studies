@@ -11,4 +11,4 @@ taki słabszy realpath ;pp tylko do symlinków i nawet w MAN'ie jest napisane ż
 stripuje ostatni komponent z nazwy pliku
 (dokładniej to wypisze coś do pierwszego '/')
 # basename
-odwrotność dirname (zostawia tylko ostatnią część z ścieżki) oraz możemy podać by usuwał podany suffix 
+odwrotność dirname (zostawia tylko ostatnią część z ścieżki) oraz możemy podać by usuwał podany suffix  
